@@ -1,0 +1,2 @@
+Use the _Unscaled version if you're experienceing issues related to scale transforms or in some cases incorrectly playing animations.
+If you end up using this version, it is recommended to scale the Character to scale (x2/ 2,2,2 / 200%), for it to be the correct visual size and match the rest of the characters.
