@@ -307,7 +307,7 @@ Animation:
   - {fileID: 2188323905074769703, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
   - {fileID: 5929533664354034034, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
   - {fileID: 2825485217256495706, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 5176603141605120071, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
+  - {fileID: 5176603141605120071, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
   - {fileID: 4787742288682755051, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
   - {fileID: 2613239370480212521, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
   - {fileID: -9092174892689370499, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
@@ -397,7 +397,7 @@ MonoBehaviour:
   enemyMask:
     serializedVersion: 2
     m_Bits: 128
-  sightRadius: 6
+  sightRadius: 100
   moveSpeed: 0.9
   attackRange: 1.6
   attackRate: 0.6
