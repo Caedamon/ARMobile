@@ -3,10 +3,12 @@ using UnityEngine;
 using Game;          // for Health
 using Characters;    // for KaijuBody
 using GameCamera;    // for CameraShaker
+// https://www.youtube.com/watch?v=gpaq5bAjya8
 
 namespace Combat
 {
     [RequireComponent(typeof(Health))]
+    [RequireComponent(typeof(Animation))]
     public class SimpleMeleeAI : MonoBehaviour
     {
         [Header("Targeting")] public LayerMask enemyMask;
@@ -18,24 +20,49 @@ namespace Combat
         public float attackRate = 0.6f;   // swings per second
         public float damage = 25f;
 
+        [Header("Animation Clips")]
+        public string idleClip = "Idle_Combat";
+        public string attackClip = "Unarmed_Melee_Attack_Punch_A";
+        public string hitClip = "Hit_A";
+        public string deathClip = "Death_C_Skeletons";
+
         private Transform _target;
         private Health _myHealth;
+        private Animation _anim;
         private float _nextAttackTime;
+        private bool _isDead;
 
         void Awake()
         {
             _myHealth = GetComponent<Health>();
+            _anim = GetComponent<Animation>();
+        }
+
+        void Start()
+        {
+            // make sure idle is playing initially
+            if (_anim && _anim.GetClip(idleClip))
+                _anim.Play(idleClip);
         }
 
         void OnEnable()
         {
             _target = null;
             _nextAttackTime = 0f;
+            _isDead = false;
         }
 
         void Update()
         {
-            if (_myHealth != null && _myHealth.IsDead) return;
+            if (_myHealth == null) return;
+
+            if (!_isDead && _myHealth.IsDead)
+            {
+                Die();
+                return;
+            }
+
+            if (_isDead) return;
 
             if (_target == null || !_target.gameObject.activeInHierarchy)
                 _target = FindClosestEnemy();
@@ -45,17 +72,25 @@ namespace Combat
             float d = Vector3.Distance(transform.position, _target.position);
             if (d > attackRange)
             {
-                Vector3 to = (_target.position - transform.position);
-                to.y = 0f;
-                if (to.sqrMagnitude > 0.0001f)
-                    transform.forward = Vector3.Lerp(transform.forward, to.normalized, 0.35f);
-
-                transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                MoveTowardsTarget();
             }
             else
             {
                 TryAttack();
             }
+        }
+
+        void MoveTowardsTarget()
+        {
+            Vector3 to = (_target.position - transform.position);
+            to.y = 0f;
+            if (to.sqrMagnitude > 0.0001f)
+                transform.forward = Vector3.Lerp(transform.forward, to.normalized, 0.35f);
+
+            transform.position += transform.forward * moveSpeed * Time.deltaTime;
+
+            if (_anim && !_anim.IsPlaying(idleClip))
+                _anim.CrossFade(idleClip, 0.2f);
         }
 
         Transform FindClosestEnemy()
@@ -79,14 +114,18 @@ namespace Combat
             if (Time.time < _nextAttackTime) return;
             _nextAttackTime = Time.time + 1f / Mathf.Max(attackRate, 0.01f);
 
+            // play attack animation
+            if (_anim && _anim.GetClip(attackClip))
+                _anim.CrossFade(attackClip, 0.1f);
+
             Vector3 p = transform.position + transform.forward * (attackRange * 0.6f);
             float r = attackRange * 0.6f;
             var hits = Physics.OverlapSphere(p, r, enemyMask);
 
             HashSet<Health> unique = new HashSet<Health>();
-            for (int i = 0; i < hits.Length; i++)
+            foreach (var h in hits)
             {
-                var hp = hits[i].GetComponent<Health>() ?? hits[i].GetComponentInParent<Health>();
+                var hp = h.GetComponent<Health>() ?? h.GetComponentInParent<Health>();
                 if (hp != null) unique.Add(hp);
             }
 
@@ -101,10 +140,22 @@ namespace Combat
                     Vector3 dir = tr.position - transform.position;
                     kb.ApplyKnockback(dir, 0.35f);
                 }
+
+                // trigger their hit reaction if they have Animation
+                var anim = tr.GetComponent<Animation>();
+                if (anim && anim.GetClip(hitClip))
+                    anim.CrossFade(hitClip, 0.1f);
             }
 
             var shaker = Object.FindAnyObjectByType<CameraShaker>();
             if (shaker != null) shaker.Kick();
+        }
+
+        void Die()
+        {
+            _isDead = true;
+            if (_anim && _anim.GetClip(deathClip))
+                _anim.CrossFade(deathClip, 0.2f);
         }
 
         void OnDrawGizmosSelected()
@@ -112,7 +163,6 @@ namespace Combat
             Gizmos.color = Color.yellow;
             Vector3 p = transform.position + transform.forward * (attackRange * 0.6f);
             Gizmos.DrawWireSphere(p, attackRange * 0.6f);
-
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, sightRadius);
         }
