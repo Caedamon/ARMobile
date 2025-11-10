@@ -48,7 +48,12 @@ namespace Combat
                     var u = _units[i];
                     if (!u || u.IsDead) _units.RemoveAt(i);
                 }
-                if (_units.Count == 0) yield break;
+                if (_units.Count == 0)
+                {
+                    // AR: units may appear later; keep coroutine alive and rescan next frame
+                    yield return null;
+                    continue;
+                }
 
                 _roundIndex++;
                 if (logRounds) Debug.Log($"[TB] Round #{_roundIndex} — units={_units.Count}");
