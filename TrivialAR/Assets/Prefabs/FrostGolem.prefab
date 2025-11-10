@@ -30,15 +30,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.15
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.15
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.15
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -46,15 +46,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalRotation.x
@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalRotation.z
@@ -74,7 +74,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 180
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -286,6 +286,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2715267217191593938}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2692019276920324632}
   m_SourcePrefab: {fileID: 100100000, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
 --- !u!1 &7977578406141791347 stripped
 GameObject:
@@ -399,18 +402,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bae3c1a54c3fe4f4e8226674217d158f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyMask:
-    serializedVersion: 2
-    m_Bits: 0
+  team: 0
   sightRadius: 100
   moveSpeed: 0.9
+  turnLerp: 0.35
   attackRange: 1.6
   attackRate: 0.6
   damage: 25
   idleClip: Idle_Combat
-  attackClip: Unarmed_Melee_Attack_Punch_A
-  hitClip: Hit_A
+  attackClips:
+  - Unarmed_Melee_Attack_Punch_A
+  - Unarmed_Melee_Attack_Punch_B
+  - Unarmed_Melee_Attack_Kick
+  hitClips:
+  - Hit_A
+  - Hit_B
+  dodgeClips:
+  - Dodge_Forward
+  - Dodge_Backward
+  - Dodge_Left
+  - Dodge_Right
   deathClip: Death_C_Skeletons
+  dodgeChanceOnAttack: 0
+  dodgeStrafeDistance: 0.8
+  debug: 0
 --- !u!114 &2715267217191593938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -427,3 +442,16 @@ MonoBehaviour:
   onDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2692019276920324632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7977578406141791347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c46dcaad55bea524aa80c9f8a0a94d1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  setOnce: 1
