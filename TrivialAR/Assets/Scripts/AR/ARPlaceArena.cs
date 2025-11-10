@@ -53,7 +53,9 @@ namespace AR
             if (_spawned == null)
             {
                 _spawned = Instantiate(arenaPrefab, pose.position, pose.rotation);
-
+                var manager = FindFirstObjectByType<Combat.TurnBasedBattleManager>();
+                if (manager) manager.DiscoverUnits();
+                
                 if (attachAnchor && anchorManager != null)
                 {
                     _anchor = CreateAnchor(pose, hit.trackable as ARPlane);

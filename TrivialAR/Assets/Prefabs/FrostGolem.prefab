@@ -282,13 +282,10 @@ PrefabInstance:
       addedObject: {fileID: 3862504216971491433}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7928555006523882621}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 2715267217191593938}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2692019276920324632}
+      addedObject: {fileID: 5584201814586843473}
   m_SourcePrefab: {fileID: 100100000, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
 --- !u!1 &7977578406141791347 stripped
 GameObject:
@@ -390,42 +387,6 @@ MonoBehaviour:
   knockbackMultiplier: 1
   maxStep: 0.6
   optionalRb: {fileID: -6875243051013207999}
---- !u!114 &7928555006523882621
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7977578406141791347}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bae3c1a54c3fe4f4e8226674217d158f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  team: 0
-  sightRadius: 100
-  moveSpeed: 0.9
-  turnLerp: 0.35
-  attackRange: 1.6
-  attackRate: 0.6
-  damage: 25
-  idleClip: Idle_Combat
-  attackClips:
-  - Unarmed_Melee_Attack_Punch_A
-  - Unarmed_Melee_Attack_Punch_B
-  - Unarmed_Melee_Attack_Kick
-  hitClips:
-  - Hit_A
-  - Hit_B
-  dodgeClips:
-  - Dodge_Forward
-  - Dodge_Backward
-  - Dodge_Left
-  - Dodge_Right
-  deathClip: Death_C_Skeletons
-  dodgeChanceOnAttack: 0
-  dodgeStrafeDistance: 0.8
-  debug: 0
 --- !u!114 &2715267217191593938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -442,7 +403,7 @@ MonoBehaviour:
   onDeath:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &2692019276920324632
+--- !u!114 &5584201814586843473
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -451,7 +412,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 7977578406141791347}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c46dcaad55bea524aa80c9f8a0a94d1f, type: 3}
+  m_Script: {fileID: 11500000, guid: 95fe1d52cc9c8ab46bb88b219181c9b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  setOnce: 1
+  team: 1
+  moveStepMeters: 0.2
+  attackRange: 0.1
+  damage: 25
+  sightRadius: 20
+  dodgeProbabilityInRange: 0.35
+  idleClip: Idle_Combat
+  walkClip: Walking_D_Skeletons
+  attackClips:
+  - Unarmed_Melee_Attack_Punch_A
+  - Unarmed_Melee_Attack_Punch_B
+  - Unarmed_Melee_Attack_Kick
+  dodgeClips:
+  - Dodge_Left
+  - Dodge_Right
+  - Dodge_Forward
+  - Dodge_Backward
+  hitClips:
+  - Hit_A
+  - Hit_B
+  deathClip: Death_C_Skeletons

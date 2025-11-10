@@ -655,6 +655,69 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!1 &2005881281
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2005881283}
+  - component: {fileID: 2005881282}
+  - component: {fileID: 2005881284}
+  m_Layer: 0
+  m_Name: BattleManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2005881282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2005881281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57bec9792eb96e1469788d504f897b2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  thinkTimeSeconds: 2
+  resolveDelaySeconds: 0.1
+  autoDiscoverOnStart: 1
+  rescanEachRound: 1
+  logRounds: 1
+--- !u!4 &2005881283
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2005881281}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 8.629629, y: 1.4616852, z: 0.63300157}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2005881284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2005881281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acd43fd5cef230d4c8d3e8e805cd60ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  show: 1
 --- !u!1 &2147037482
 GameObject:
   m_ObjectHideFlags: 0
@@ -667,6 +730,7 @@ GameObject:
   - component: {fileID: 2147037483}
   - component: {fileID: 2147037486}
   - component: {fileID: 2147037485}
+  - component: {fileID: 2147037488}
   - component: {fileID: 2147037487}
   m_Layer: 0
   m_Name: XR Origin
@@ -690,8 +754,8 @@ MonoBehaviour:
   m_Camera: {fileID: 1515127567}
   m_OriginBaseGameObject: {fileID: 2147037482}
   m_CameraFloorOffsetObject: {fileID: 763525665}
-  m_RequestedTrackingOriginMode: 2
-  m_CameraYOffset: 1.1176
+  m_RequestedTrackingOriginMode: 1
+  m_CameraYOffset: 0
 --- !u!4 &2147037484
 Transform:
   m_ObjectHideFlags: 0
@@ -750,10 +814,33 @@ MonoBehaviour:
   m_GameObject: {fileID: 2147037482}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 20f61203c05627341990673cb8319979, type: 3}
+  m_Script: {fileID: 11500000, guid: bc6bff2a359943d448cf82742b1c43f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   raycastManager: {fileID: 2147037485}
+  planeManager: {fileID: 2147037486}
+  anchorManager: {fileID: 2147037488}
+  arenaPrefab: {fileID: 2213553683388833160, guid: 1529df5b2155c974b9320444d8de467c, type: 3}
+  allowReposition: 0
+  hidePlanesAfterPlacement: 1
+  attachAnchor: 1
+  faceCameraOnPlace: 1
+--- !u!114 &2147037488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2147037482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 728ad7fae8e460a4ba41265c7308d757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_AnchorPrefab: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -762,3 +849,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 2147037484}
   - {fileID: 1378489497}
+  - {fileID: 2005881283}
