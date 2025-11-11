@@ -1,44 +1,44 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
-using Combat;        // Team, TBIntent
-using Game;          // Health
-using Characters;    // KaijuBody
+using Combat;
+using Characters;
+using UI;
 
 namespace Combat
 {
     [RequireComponent(typeof(Health))]
-    [RequireComponent(typeof(Animation))]  // legacy Animation on the SAME GameObject
+    [RequireComponent(typeof(Animation))] // legacy Animation on the SAME GameObject
     public class TurnBasedMeleeAI : MonoBehaviour
     {
-        [Header("Team")]
-        public Team team = Team.Main;
+        [Header("Team")] public Team team = Team.Main;
 
-        [Header("Stats")]
-        [Tooltip("How far to walk per round when closing distance.")]
-        public float moveStepMeters = 0.45f;
-        public float attackRange = 0.55f;
+        [Header("Stats")] [Tooltip("How far to walk per round when closing distance.")]
+        public float moveStepMeters = 0.2f;
+
+        public float attackRange = 0.10f;
         public float damage = 25f;
 
-        [Header("AI")]
-        public float sightRadius = 20f;
-        [Range(0f, 1f)] public float dodgeProbabilityInRange = 0.35f;
+        [Header("AI")] public float sightRadius = 20f;
+        [Range(0f, 1f)] public float dodgeProbabilityInRange = 0.0f; // set >0 later if you want dodges
 
         [Header("Animation Clips (legacy, on this object)")]
         public string idleClip = "Idle_Combat";
+
         public string walkClip = "Walking_D_Skeletons";
+
         public List<string> attackClips = new()
         {
             "Unarmed_Melee_Attack_Punch_A",
             "Unarmed_Melee_Attack_Punch_B",
             "Unarmed_Melee_Attack_Kick"
         };
+
         public List<string> dodgeClips = new() { "Dodge_Left", "Dodge_Right", "Dodge_Forward", "Dodge_Backward" };
-        public List<string> hitClips   = new() { "Hit_A", "Hit_B" };
+        public List<string> hitClips = new() { "Hit_A", "Hit_B" };
         public string deathClip = "Death_C_Skeletons";
 
-        // Runtime (read-only externally)
+        // Runtime
         public int CurrentInitiative { get; set; }
         public TBIntent Intent { get; private set; } = TBIntent.Idle;
         public TurnBasedMeleeAI CachedTarget { get; private set; }
@@ -46,6 +46,7 @@ namespace Combat
 
         private Health _hp;
         private Animation _anim;
+        private bool _playedDeath = false; // ensure death anim plays once
 
         void Awake()
         {
@@ -56,22 +57,34 @@ namespace Combat
                 _anim.playAutomatically = false;
                 _anim.cullingType = AnimationCullingType.AlwaysAnimate;
             }
+
             PlayIdle();
         }
 
         // ===== Decision phase =====
         public int RollInitiative() => Random.Range(1, 21) + Random.Range(0, 3);
 
-        public void BeginThinking(float thinkSeconds) { Intent = TBIntent.Idle; }
+        public void BeginThinking(float _thinkSeconds)
+        {
+            Intent = TBIntent.Idle;
+        }
 
         public void FinalizeIntent()
         {
-            if (IsDead) { Intent = TBIntent.Idle; return; }
+            if (IsDead)
+            {
+                Intent = TBIntent.Idle;
+                return;
+            }
 
             var opp = FindClosestEnemy();
             CachedTarget = opp;
 
-            if (!opp || opp.IsDead) { Intent = TBIntent.Idle; return; }
+            if (!opp || opp.IsDead)
+            {
+                Intent = TBIntent.Idle;
+                return;
+            }
 
             float dist = FlatDistanceTo(opp.transform.position);
             Intent = (dist > attackRange)
@@ -81,7 +94,11 @@ namespace Combat
 
         public void CacheTarget(List<TurnBasedMeleeAI> all)
         {
-            if (IsDead) { CachedTarget = null; return; }
+            if (IsDead)
+            {
+                CachedTarget = null;
+                return;
+            }
 
             if (CachedTarget == null || CachedTarget.IsDead ||
                 (CachedTarget.transform.position - transform.position).sqrMagnitude > sightRadius * sightRadius)
@@ -102,7 +119,7 @@ namespace Combat
             switch (Intent)
             {
                 case TBIntent.Move:
-                    if (CachedTarget) ExecuteMoveStepTowards(CachedTarget.transform.position, step);
+                    if (CachedTarget) ExecuteMoveStepTowards(CachedTarget.transform.position, step, attackRange);
                     else PlayIdle();
                     break;
 
@@ -127,12 +144,16 @@ namespace Combat
 
             if (Intent == TBIntent.Move)
             {
-                if (!InRangeOf(opp)) ExecuteMoveStepTowards(opp.transform.position, moveStepOverride);
+                if (!InRangeOf(opp)) ExecuteMoveStepTowards(opp.transform.position, moveStepOverride, attackRange);
                 else PlayIdle();
                 return;
             }
 
-            if (Intent == TBIntent.Dodge) { ExecuteDodge(); return; }
+            if (Intent == TBIntent.Dodge)
+            {
+                ExecuteDodge();
+                return;
+            }
 
             if (Intent == TBIntent.Attack)
             {
@@ -147,16 +168,52 @@ namespace Combat
         // ===== Actions =====
         public void ExecuteMoveStepTowards(Vector3 targetPos, float moveStep)
         {
-            var to = targetPos - transform.position; to.y = 0f;
-            if (to.sqrMagnitude < 1e-6f) { PlayIdle(); return; }
+            // kept for compatibility; moves without a stop distance clamp
+            var to = targetPos - transform.position;
+            to.y = 0f;
+            float dist = to.magnitude;
+            if (dist < 1e-6f)
+            {
+                PlayIdle();
+                return;
+            }
 
-            var dir = to.normalized;
+            var dir = to / dist;
             transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
             if (_anim && !string.IsNullOrEmpty(walkClip) && _anim.GetClip(walkClip))
                 _anim.CrossFade(walkClip, 0.1f);
 
-            transform.position += dir * Mathf.Min(moveStep, to.magnitude);
+            transform.position += dir * Mathf.Min(moveStep, dist);
+        }
+
+        // NEW: move but stop at a minimum distance (attackRange) from target
+        public void ExecuteMoveStepTowards(Vector3 targetPos, float moveStep, float stopAtDistance)
+        {
+            var to = targetPos - transform.position;
+            to.y = 0f;
+            float dist = to.magnitude;
+            if (dist <= Mathf.Max(1e-4f, stopAtDistance))
+            {
+                PlayIdle();
+                return;
+            }
+
+            var dir = to / dist;
+            transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+            if (_anim && !string.IsNullOrEmpty(walkClip) && _anim.GetClip(walkClip))
+                _anim.CrossFade(walkClip, 0.1f);
+
+            float maxAdvance = Mathf.Max(0f, dist - stopAtDistance);
+            float step = Mathf.Min(moveStep, maxAdvance);
+            if (step <= 1e-6f)
+            {
+                PlayIdle();
+                return;
+            }
+
+            transform.position += dir * step;
         }
 
         public void ExecuteDodge()
@@ -170,9 +227,14 @@ namespace Combat
 
         public void ExecuteAttack(TurnBasedMeleeAI target)
         {
-            if (!target || target.IsDead) { PlayIdle(); return; }
+            if (!target || target.IsDead)
+            {
+                PlayIdle();
+                return;
+            }
 
-            var to = target.transform.position - transform.position; to.y = 0f;
+            var to = target.transform.position - transform.position;
+            to.y = 0f;
             if (to.sqrMagnitude > 1e-6f)
                 transform.rotation = Quaternion.LookRotation(to.normalized, Vector3.up);
 
@@ -182,19 +244,31 @@ namespace Combat
 
             target._hp?.TakeDamage(damage);
 
+            // small knockback to reduce jitter/yo-yo
             var kb = target.GetComponent<KaijuBody>() ?? target.GetComponentInChildren<KaijuBody>();
-            if (kb != null) kb.ApplyKnockback(to.normalized, 0.3f);
+            if (kb != null) kb.ApplyKnockback(to.normalized, 0.05f);
 
             var tAnim = target.GetComponent<Animation>() ?? target.GetComponentInChildren<Animation>();
             string hc = PickClip(hitClips);
             if (tAnim && !string.IsNullOrEmpty(hc) && tAnim.GetClip(hc))
                 tAnim.CrossFade(hc, 0.05f);
 
-            if (target.IsDead && tAnim && !string.IsNullOrEmpty(deathClip) && tAnim.GetClip(deathClip))
-                tAnim.CrossFade(deathClip, 0.15f);
+            if (target.IsDead)
+            {
+                target.PlayDeathIfNeeded(); // trigger victim death anim immediately
+            }
         }
 
         // ===== Utility =====
+        private void PlayDeathIfNeeded()
+        {
+            if (_playedDeath) return;
+            var tAnim = GetComponent<Animation>() ?? GetComponentInChildren<Animation>();
+            if (tAnim && !string.IsNullOrEmpty(deathClip) && tAnim.GetClip(deathClip))
+                tAnim.CrossFade(deathClip, 0.15f);
+            _playedDeath = true;
+        }
+
         private bool InRangeOf(TurnBasedMeleeAI other)
         {
             if (!other) return false;
@@ -203,7 +277,8 @@ namespace Combat
 
         private float FlatDistanceTo(Vector3 worldPos)
         {
-            var a = transform.position; a.y = 0f;
+            var a = transform.position;
+            a.y = 0f;
             worldPos.y = 0f;
             return Vector3.Distance(a, worldPos);
         }
@@ -211,7 +286,8 @@ namespace Combat
         private TurnBasedMeleeAI FindClosestEnemy()
         {
             var all = FindObjectsByType<TurnBasedMeleeAI>(FindObjectsSortMode.None);
-            float best = float.MaxValue; TurnBasedMeleeAI bestU = null;
+            float best = float.MaxValue;
+            TurnBasedMeleeAI bestU = null;
 
             foreach (var u in all)
             {
@@ -220,8 +296,12 @@ namespace Combat
 
                 float sq = (u.transform.position - transform.position).sqrMagnitude;
                 if (sq < best && sq <= sightRadius * sightRadius)
-                { best = sq; bestU = u; }
+                {
+                    best = sq;
+                    bestU = u;
+                }
             }
+
             return bestU;
         }
 
@@ -235,7 +315,8 @@ namespace Combat
         {
             if (list == null || list.Count == 0) return null;
             foreach (var name in list)
-                if (!string.IsNullOrEmpty(name)) return name;
+                if (!string.IsNullOrEmpty(name))
+                    return name;
             return null;
         }
     }

@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.Events;
+using System.Collections;
 
-namespace Game
+namespace UI
 {
     public class Health : MonoBehaviour
     {
@@ -26,8 +27,15 @@ namespace Game
             {
                 _hp = 0f;
                 onDeath?.Invoke();
-                gameObject.SetActive(false);
+                StartCoroutine(DisableAfterSeconds());
             }
+        }
+
+        private IEnumerator DisableAfterSeconds()
+        {
+            const float seconds = 2.0f;
+                yield return new WaitForSeconds(seconds);
+                gameObject.SetActive(false);
         }
     }
 }
