@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
 
-namespace UI
+namespace Game
 {
     public class Health : MonoBehaviour
     {

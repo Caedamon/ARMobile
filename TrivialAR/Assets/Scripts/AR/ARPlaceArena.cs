@@ -1,3 +1,4 @@
+// Assets/Scripts/AR/ARPlaceArena.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -43,6 +44,7 @@ namespace AR
             var hit  = Hits[0];
             var pose = hit.pose;
 
+            // face arena to camera forward on placement (keeps fighters facing user)
             if (faceCameraOnPlace && Camera.main)
             {
                 var fwd = Camera.main.transform.forward; fwd.y = 0f;
@@ -53,9 +55,13 @@ namespace AR
             if (_spawned == null)
             {
                 _spawned = Instantiate(arenaPrefab, pose.position, pose.rotation);
-                var manager = FindFirstObjectByType<Combat.TurnBasedBattleManager>();
-                if (manager) manager.DiscoverUnits();
-                
+
+                // Kick combat + UI discovery ONCE after spawn
+                var bm = FindFirstObjectByType<Combat.TurnBasedBattleManager>();
+                if (bm) bm.DiscoverUnits();
+                var ui = FindFirstObjectByType<UI.TurnBasedUIManager>();
+                if (ui) ui.Rebind();
+
                 if (attachAnchor && anchorManager != null)
                 {
                     _anchor = CreateAnchor(pose, hit.trackable as ARPlane);
@@ -66,20 +72,14 @@ namespace AR
             }
             else if (allowReposition)
             {
+                // Reposition arena (and anchor if used)
                 if (_anchor != null)
                 {
                     _spawned.transform.SetParent(null, true);
                     Destroy(_anchor.gameObject);
                     _anchor = CreateAnchor(pose, hit.trackable as ARPlane);
-                    if (_anchor)
-                    {
-                        _spawned.transform.SetPositionAndRotation(pose.position, pose.rotation);
-                        _spawned.transform.SetParent(_anchor.transform, true);
-                    }
-                    else
-                    {
-                        _spawned.transform.SetPositionAndRotation(pose.position, pose.rotation);
-                    }
+                    _spawned.transform.SetPositionAndRotation(pose.position, pose.rotation);
+                    if (_anchor) _spawned.transform.SetParent(_anchor.transform, true);
                 }
                 else
                 {
@@ -92,15 +92,17 @@ namespace AR
         {
             if (anchorManager == null) return null;
 
+            // Prefer attaching to the hit plane (best tracking stability)
             if (plane != null)
             {
                 var attached = anchorManager.AttachAnchor(plane, pose);
                 if (attached) return attached;
             }
+
+            // Fallback: world anchor at pose (provider will own lifetime)
             var go = new GameObject("WorldAnchor");
             go.transform.SetPositionAndRotation(pose.position, pose.rotation);
-            var worldAnchor = go.AddComponent<ARAnchor>();
-            return worldAnchor ? worldAnchor : null;
+            return go.AddComponent<ARAnchor>();
         }
 
         private void StopAndHidePlanes()

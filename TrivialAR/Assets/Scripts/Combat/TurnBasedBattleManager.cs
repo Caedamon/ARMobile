@@ -21,7 +21,7 @@ namespace Combat
 
         private readonly List<TurnBasedMeleeAI> _units = new();
         private int _roundIndex = 0;
-        private bool _didKickstart = false;   // <-- MISSING BEFORE
+        private bool _didKickstart = false;
 
         void Start()
         {
@@ -42,23 +42,16 @@ namespace Combat
             {
                 if (rescanEachRound) DiscoverUnits();
 
-                // prune dead/missing
                 for (int i = _units.Count - 1; i >= 0; i--)
                 {
                     var u = _units[i];
                     if (!u || u.IsDead) _units.RemoveAt(i);
                 }
-                if (_units.Count == 0)
-                {
-                    // AR: units may appear later; keep coroutine alive and rescan next frame
-                    yield return null;
-                    continue;
-                }
+                if (_units.Count == 0) { yield return null; continue; }
 
                 _roundIndex++;
                 if (logRounds) Debug.Log($"[TB] Round #{_roundIndex} — units={_units.Count}");
 
-                // ----- KICKSTART FIRST ROUND (no initial wait) -----
                 if (kickstartFirstRound && !_didKickstart && _units.Count >= 2)
                 {
                     foreach (var u in _units) { if (!u || u.IsDead) continue; u.CurrentInitiative = u.RollInitiative(); }
@@ -72,10 +65,9 @@ namespace Combat
 
                     _didKickstart = true;
                     yield return null;
-                    continue; // next loop runs normal timing
+                    continue;
                 }
 
-                // initiative + thinking
                 foreach (var u in _units)
                 {
                     if (!u || u.IsDead) continue;
@@ -85,18 +77,15 @@ namespace Combat
 
                 yield return new WaitForSeconds(thinkTimeSeconds + resolveDelaySeconds);
 
-                // choose intents
                 foreach (var u in _units)
                 {
                     if (!u || u.IsDead) continue;
                     u.FinalizeIntent();
                 }
 
-                // cache targets
                 var aliveNow = _units.Where(u => u && !u.IsDead).ToList();
                 foreach (var u in aliveNow) u.CacheTarget(aliveNow);
 
-                // resolve
                 ResolveRound(aliveNow);
 
                 yield return null;
@@ -142,15 +131,16 @@ namespace Combat
             var ai = a.Intent;
             var bi = b.Intent;
 
-            // both move → walk without overshooting into attack range
+            // both move → step toward each other but stop at attack range
             if (ai == TBIntent.Move && bi == TBIntent.Move)
             {
                 float dist = Vector3.Distance(a.transform.position, b.transform.position);
-                float targetDist = Mathf.Max(a.attackRange, b.attackRange);
-                float available = Mathf.Max(0f, dist - targetDist + 1e-3f);
+                float stopDist = Mathf.Max(a.attackRange, b.attackRange);
+                float available = Mathf.Max(0f, dist - stopDist + 1e-3f);
                 float stepEach = Mathf.Min(a.moveStepMeters, b.moveStepMeters, available * 0.5f);
-                a.ExecuteMoveStepTowards(b.transform.position, stepEach);
-                b.ExecuteMoveStepTowards(a.transform.position, stepEach);
+
+                a.ExecuteMoveStepTowards(b.transform.position, stepEach, a.attackRange);
+                b.ExecuteMoveStepTowards(a.transform.position, stepEach, b.attackRange);
                 return;
             }
 
