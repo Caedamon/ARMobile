@@ -1,0 +1,63 @@
+﻿# --- Unity generated ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+sysinfo.txt
+*.stacktrace
+*.log
+
+# Keep your actual project content (Assets, ProjectSettings, Packages):
+# Do NOT ignore Assets/** – Unity needs those tracked
+!Assets/**
+
+# Packages: keep the lockfiles tracked
+!Packages/manifest.json
+!Packages/packages-lock.json
+
+# ProjectSettings should be tracked except user-specific editor prefs
+ProjectSettings/EditorUserSettings.asset
+
+# --- IDE / tool clutter ---
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.unityproj
+*.DotSettings.user
+
+# --- Platform & export byproducts ---
+# Android / Gradle (only matters if you export a Gradle project)
+**/.gradle/
+**/gradle/
+**/gradlew
+**/gradlew.bat
+**/gradle-wrapper.jar
+**/gradle/wrapper/
+
+# Builds (artifacts you shouldn’t commit)
+*.apk
+*.aab
+*.ipa
+*.xcodeproj
+*.xcworkspace
+*.app
+*.exe
+[Bb]uild*/  # catches Build/ and Builds/
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+desktop.ini
