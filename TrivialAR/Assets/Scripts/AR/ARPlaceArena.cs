@@ -1,4 +1,4 @@
-// Assets/Scripts/AR/ARPlaceArena.cs
+// File: Assets/Scripts/AR/ARPlaceArena.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -44,7 +44,6 @@ namespace AR
             var hit  = Hits[0];
             var pose = hit.pose;
 
-            // face arena to camera forward on placement (keeps fighters facing user)
             if (faceCameraOnPlace && Camera.main)
             {
                 var fwd = Camera.main.transform.forward; fwd.y = 0f;
@@ -56,11 +55,18 @@ namespace AR
             {
                 _spawned = Instantiate(arenaPrefab, pose.position, pose.rotation);
 
-                // Kick combat + UI discovery ONCE after spawn
-                var bm = FindFirstObjectByType<Combat.TurnBasedBattleManager>();
+                // Kick combat discovery
+                var bm = FindFirstObjectByType<Combat.BattleManager>();
                 if (bm) bm.DiscoverUnits();
-                var ui = FindFirstObjectByType<UI.TurnBasedUIManager>();
-                if (ui) ui.Rebind();
+
+                // Try both UI manager names so you don't have to rename now
+                var uiBattle = FindFirstObjectByType<UI.BattleUIManager>();
+                if (uiBattle) uiBattle.Rebind();
+                else
+                {
+                    var uiTurnBased = FindFirstObjectByType<UI.BattleUIManager>();
+                    if (uiTurnBased) uiTurnBased.Rebind();
+                }
 
                 if (attachAnchor && anchorManager != null)
                 {
@@ -72,7 +78,6 @@ namespace AR
             }
             else if (allowReposition)
             {
-                // Reposition arena (and anchor if used)
                 if (_anchor != null)
                 {
                     _spawned.transform.SetParent(null, true);
@@ -85,6 +90,10 @@ namespace AR
                 {
                     _spawned.transform.SetPositionAndRotation(pose.position, pose.rotation);
                 }
+
+                // Optional: refresh targets when moved
+                var bm = FindFirstObjectByType<Combat.BattleManager>();
+                if (bm) bm.DiscoverUnits();
             }
         }
 
@@ -92,14 +101,14 @@ namespace AR
         {
             if (anchorManager == null) return null;
 
-            // Prefer attaching to the hit plane (best tracking stability)
+            // Prefer a plane-attached anchor for stability
             if (plane != null)
             {
                 var attached = anchorManager.AttachAnchor(plane, pose);
                 if (attached) return attached;
             }
 
-            // Fallback: world anchor at pose (provider will own lifetime)
+            // Fallback: world anchor
             var go = new GameObject("WorldAnchor");
             go.transform.SetPositionAndRotation(pose.position, pose.rotation);
             return go.AddComponent<ARAnchor>();

@@ -28,7 +28,7 @@ namespace UI
         Camera _cam;
         RenderTexture _rt;
         Transform _head;
-        TurnBasedMeleeAI _unit;
+        MeleeAI _unit;
 
         void OnEnable()
         {
@@ -110,9 +110,9 @@ namespace UI
             }
         }
 
-        static TurnBasedMeleeAI FindUnit(Team t)
+        static MeleeAI FindUnit(Team t)
         {
-            var units = Object.FindObjectsByType<TurnBasedMeleeAI>(FindObjectsSortMode.None);
+            var units = Object.FindObjectsByType<MeleeAI>(FindObjectsSortMode.None);
             foreach (var u in units) if (u && u.team == t) return u;
             return null;
         }
