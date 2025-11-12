@@ -1,11 +1,7 @@
-// File: Scripts/Core/KaijuBody.cs
 using UnityEngine;
 
 namespace Characters
 {
-    /// <summary>
-    /// Tiny knockback helper. Horizontal-only nudge; works with kinematic bodies.
-    /// </summary>
     public class KaijuBody : MonoBehaviour
     {
         [Header("Knockback")]
@@ -18,9 +14,6 @@ namespace Characters
         [Tooltip("If present, this Rigidbody can be briefly toggled for physics-friendly nudges.")]
         public Rigidbody optionalRb;
 
-        /// <summary>
-        /// Applies a horizontal knockback from the attacker towards this unit.
-        /// </summary>
         public void ApplyKnockback(Vector3 fromTargetDirection, float baseForce = 0.35f)
         {
             Vector3 dir = fromTargetDirection; dir.y = 0f;

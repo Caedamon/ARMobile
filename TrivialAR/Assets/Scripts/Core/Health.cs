@@ -1,4 +1,3 @@
-// File: Scripts/Core/Health.cs
 using System;
 using System.Collections;
 using UnityEngine;
@@ -6,10 +5,6 @@ using UnityEngine.Events;
 
 namespace Game
 {
-    /// <summary>
-    /// Simple health with death event and optional delayed disable.
-    /// Now exposes CurrentHP/MaxHP and OnHealthChanged for UI.
-    /// </summary>
     public class Health : MonoBehaviour
     {
         [Header("Config")]
@@ -19,12 +14,12 @@ namespace Game
         [Header("Runtime (read-only)")]
         [SerializeField] private float _hp;
 
-        /// <summary>Current health points.</summary>
+        // <summary>Current health points.</summary>
         public float CurrentHP => _hp;
-        /// <summary>Maximum health points.</summary>
+        // <summary>Maximum health points.</summary>
         public float MaxHP => maxHP;
 
-        /// <summary>(current, max) fired whenever HP changes.</summary>
+        // <summary>(current, max) fired whenever HP changes.</summary>
         public event Action<float, float> OnHealthChanged;
 
         void Awake()

@@ -1,7 +1,3 @@
-// ============================================================================
-// File: Assets/Scripts/Combat/MeleeAI.cs
-// Purpose: Now records LastActionDuration each round for BattleManager timing.
-// ============================================================================
 using System.Collections.Generic;
 using System.Linq;
 using Game;
@@ -22,7 +18,7 @@ namespace Combat
         public int CurrentInitiative { get; set; }
         public Intent Intent { get; private set; } = Intent.Idle;
         public MeleeAI CachedTarget { get; private set; }
-        public float LastActionDuration { get; private set; } = 0f; // <-- NEW
+        public float LastActionDuration { get; private set; } = 0f;
 
         public bool IsDead => _hp != null && _hp.IsDead;
 

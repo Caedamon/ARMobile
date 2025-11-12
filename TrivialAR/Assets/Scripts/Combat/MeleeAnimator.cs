@@ -1,7 +1,3 @@
-// ============================================================================
-// File: Assets/Scripts/Combat/MeleeAnimator.cs
-// Purpose: Legacy Animation wrapper that returns real playback duration per action.
-// ============================================================================
 using UnityEngine;
 
 namespace Combat
@@ -62,7 +58,6 @@ namespace Combat
         }
         void CrossFadeIf(string clip, float fade) { if (!string.IsNullOrEmpty(clip) && _anim.GetClip(clip) != null) _anim.CrossFade(clip, fade); }
 
-        // --- Public control (all return their real playback time in seconds) ---
         public float PlayIdle()
         {
             SetSpeed(idleClip, idleSpeed);
@@ -111,7 +106,6 @@ namespace Combat
             return DurationSeconds(deathClip, deathSpeed);
         }
 
-        // Random pick helpers
         public string PickAttack() => Pick(attackClips);
         public string PickDodge()  => Pick(dodgeClips);
         public string PickHit()    => Pick(hitClips);

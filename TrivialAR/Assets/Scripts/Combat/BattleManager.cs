@@ -1,7 +1,3 @@
-// ============================================================================
-// File: Assets/Scripts/Combat/BattleManager.cs
-// Purpose: Instant decisions; round waits for the longest action duration.
-// ============================================================================
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +9,7 @@ namespace Combat
     {
         [Header("Cadence")]
         [Tooltip("Minimum time to wait per round if actions are shorter.")]
-        public float minRoundSeconds = 0.5f;   // can set to 0 if you want pure clip-driven timing
+        public float minRoundSeconds = 0.5f;
 
         [Header("Discovery")]
         public bool autoDiscoverOnStart = true;
@@ -64,7 +60,7 @@ namespace Combat
                 // Resolve; units will fill LastActionDuration
                 ResolveRound(alive);
 
-                // Wait for the longest action to finish (plus a tiny buffer)
+                // Wait for the longest action to finish (plus buffer)
                 float longest = Mathf.Max(minRoundSeconds, alive.Max(u => u.LastActionDuration));
                 yield return new WaitForSeconds(longest);
             }
@@ -116,8 +112,6 @@ namespace Combat
                 float each = Mathf.Min(a.MoveStepMeters, b.MoveStepMeters, available * 0.5f);
                 a.ExecuteMoveStepTowards(b.transform.position, each, a.AttackRange);
                 b.ExecuteMoveStepTowards(a.transform.position, each, b.AttackRange);
-                // both will play walk; durations already covered via ResolveSoloIntent in other paths,
-                // here we can approximate by forcing walk once (optional).
                 a.GetComponent<MeleeAnimator>()?.PlayWalk();
                 b.GetComponent<MeleeAnimator>()?.PlayWalk();
                 return;

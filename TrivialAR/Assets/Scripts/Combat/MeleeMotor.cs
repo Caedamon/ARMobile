@@ -1,4 +1,3 @@
-// Assets/Scripts/Combat/MeleeMotor.cs
 using System;
 using UnityEngine;
 
@@ -42,14 +41,13 @@ namespace Combat
             _anim       = GetComponent<MeleeAnimator>(); // optional
         }
 
-        /// Legacy API kept for compatibility (no target collider known).
         public void StepTowards(Vector3 worldTarget, float moveBudget, float stopAtDistance, MeleeAnimator animator = null)
         {
             _targetSpace = null;
             StartMoveInternal(worldTarget, stopAtDistance, moveBudget, animator);
         }
 
-        /// Target-aware smooth move (lets us stop on personal-space touch).
+        // Target-aware smooth move.
         public void StartMoveTo(MeleeAI target, float moveBudget, float fallbackStopAtDistance, MeleeAnimator animator = null)
         {
             _targetSpace = target ? target.GetComponent<PersonalSpace>() : null;
@@ -80,7 +78,7 @@ namespace Combat
 
             IsMoving = true;
 
-            // Face and start walk loop immediately (why: visual continuity)
+            // Face and start walk loop immediately
             var pos = _t.position; pos.y = 0f;
             var to  = _targetFlat - pos;
             if (to.sqrMagnitude > 1e-8f)
@@ -120,14 +118,13 @@ namespace Combat
             _traveled   += step;
         }
 
-        // ---------- Helpers used by AI ----------
         public float FlatDistanceTo(Vector3 worldPos)
         {
             var a = _t.position; a.y = 0f; worldPos.y = 0f;
             return Vector3.Distance(a, worldPos);
         }
 
-        /// Unified stop distance used by both decision and movement.
+        // Unified stop distance used by both decision and movement.
         public float StopDistanceTo(MeleeAI target, float minFallback = 0f)
         {
             float stop = 0f;
@@ -138,7 +135,7 @@ namespace Combat
             return Mathf.Max(stop, fb);
         }
 
-        /// Uses the same rule as movement so AI doesn’t loop “Move” forever.
+        // Uses same rule as movement so AI doesn’t loop “Move” forever.
         public bool InMeleeRange(MeleeAI target, float extra = 1e-4f)
         {
             if (!target) return false;

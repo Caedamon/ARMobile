@@ -1,8 +1,3 @@
-// ============================================================================
-// File: Assets/Scripts/Combat/MeleeCombat.cs
-// Purpose: Performs attacks/dodges using MeleeAnimator and reports durations.
-// ============================================================================
-
 using Characters;
 using Core;
 using Game;

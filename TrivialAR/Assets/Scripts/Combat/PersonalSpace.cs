@@ -1,10 +1,7 @@
-// File: Assets/Scripts/Combat/PersonalSpace.cs
 using UnityEngine;
 
 namespace Combat
 {
-    /// Read-only "personal space" radius pulled from a user-assigned Collider.
-    /// Works with SphereCollider, CapsuleCollider, CharacterController, or any Collider (fallback = bounds).
     public sealed class PersonalSpace : MonoBehaviour
     {
         [Tooltip("Collider used to compute personal radius (drag your Sphere/Capsule/CC here).")]
@@ -13,7 +10,7 @@ namespace Combat
         [Tooltip("Extra padding added to the computed radius.")]
         public float padding = 0.01f;
 
-        /// Horizontal radius in meters (XZ plane) plus padding.
+        // Horizontal radius in meters (XZ plane) plus padding.
         public float Radius2D
         {
             get
@@ -23,7 +20,7 @@ namespace Combat
             }
         }
 
-        /// Compute flat (XZ) radius of given collider under transform scale.
+        // Compute flat (XZ) radius of given collider under transform scale.
         static float ComputeRadiusXZ(Collider col)
         {
             if (!col) return 0f;
@@ -51,7 +48,7 @@ namespace Combat
             // Fallback: approximate from bounds (half of diagonal in XZ)
             var b = col.bounds;
             var xz = new Vector2(b.extents.x, b.extents.z);
-            return xz.magnitude; // conservative
+            return xz.magnitude;
         }
 
 #if UNITY_EDITOR

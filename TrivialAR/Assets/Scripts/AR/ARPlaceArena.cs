@@ -1,4 +1,3 @@
-// File: Assets/Scripts/AR/ARPlaceArena.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
