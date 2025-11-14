@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 6529866440858665953}
   - component: {fileID: 8053815121346081120}
   - component: {fileID: 4690474975418245282}
+  - component: {fileID: 3731179867157471911}
+  - component: {fileID: -3027895388101706595}
   m_Layer: 0
   m_Name: Round_Shield
   m_TagString: Untagged
@@ -58,6 +60,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -83,3 +88,30 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3731179867157471911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6611872783625051003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 480c3270f060a9740ac5925c45190333, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manualOverride: 0
+  manual: 1
+--- !u!114 &-3027895388101706595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6611872783625051003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbf38fef9bf09524cbe07aa9dd563178, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  binder: {fileID: 0}

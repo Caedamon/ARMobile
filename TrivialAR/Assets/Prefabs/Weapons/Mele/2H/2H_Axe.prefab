@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 3431529868153647796}
   - component: {fileID: 6776967371792017043}
   - component: {fileID: 8267283640913878437}
+  - component: {fileID: 665890697097173841}
+  - component: {fileID: 7708435398069399221}
   m_Layer: 0
   m_Name: 2H_Axe
   m_TagString: Untagged
@@ -58,6 +60,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -83,3 +88,30 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &665890697097173841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5112358053485447223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 480c3270f060a9740ac5925c45190333, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manualOverride: 0
+  manual: 1
+--- !u!114 &7708435398069399221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5112358053485447223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbf38fef9bf09524cbe07aa9dd563178, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  binder: {fileID: 0}
