@@ -865,7 +865,7 @@ MonoBehaviour:
   textureSize: 256
   cullingMaskForThisTeam:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 128
   clearColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!114 &1145777024
 MonoBehaviour:
@@ -1456,7 +1456,7 @@ MonoBehaviour:
   textureSize: 256
   cullingMaskForThisTeam:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   clearColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!114 &1599527707
 MonoBehaviour:
@@ -1804,12 +1804,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57bec9792eb96e1469788d504f897b2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  thinkTimeSeconds: 2
-  resolveDelaySeconds: 0.1
+  minRoundSeconds: 0.5
   autoDiscoverOnStart: 1
   rescanEachRound: 1
-  logRounds: 1
-  kickstartFirstRound: 1
+  log: 1
 --- !u!4 &2005881283
 Transform:
   m_ObjectHideFlags: 0
