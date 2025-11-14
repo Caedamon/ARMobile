@@ -2,113 +2,150 @@ using UnityEngine;
 
 namespace Combat
 {
-    [RequireComponent(typeof(Animation))]
+    [DisallowMultipleComponent]
     public sealed class MeleeAnimator : MonoBehaviour
     {
-        [Header("Clip Names")]
-        public string idleClip = "Idle_Combat";
-        public string walkClip = "Walking_D_Skeletons";
-        public string[] attackClips = { "Unarmed_Melee_Attack_Punch_A", "Unarmed_Melee_Attack_Punch_B", "Unarmed_Melee_Attack_Kick" };
-        public string[] dodgeClips  = { "Dodge_Left", "Dodge_Right", "Dodge_Forward", "Dodge_Backward" };
-        public string[] hitClips    = { "Hit_A", "Hit_B" };
-        public string deathClip = "Death_C_Skeletons";
+        [Header("Mode (auto)")]
+        [SerializeField] bool useAnimator; // auto-detected
 
-        [Header("Speeds (1 = import speed)")]
-        public float idleSpeed   = 1f;
-        public float walkSpeed   = 1f;
-        public float attackSpeed = 1f;
-        public float dodgeSpeed  = 1f;
-        public float hitSpeed    = 1f;
-        public float deathSpeed  = 1f;
+        [Header("Animator Params")]
+        public string speedParam = "Speed";
+        public string attackTrigger = "Attack";
+        public string heavyBool = "Heavy";
+        public string blockBool = "Block";
+        public string hitTrigger = "Hit";
+        public string dieTrigger = "Die";
 
-        Animation _anim;
+        [Header("Legacy Animation Clip Names (only if no Animator)")]
+        public string clipIdle = "Idle";
+        public string clipWalk = "Walking_A";
+        public string clipAttackLight = "1H_Melee_Attack_Slice_Horizontal";
+        public string clipAttackHeavy = "2H_Melee_Attack_Spinning";
+        public string clipBlockLoop = "Blocking";
+        public string clipHit = "Hit_A";
+        public string clipDie = "Death_A";
+
+        [Header("Durations (returned to AI)")]
+        public float idleDuration = 0.25f;
+        public float walkTickDuration = 0.50f;
+        public float attackLightDuration = 0.70f;
+        public float attackHeavyDuration = 0.95f;
+        public float blockEnterExitDuration = 0.20f;
+        public float hitDuration = 0.45f;
+        public float dieDuration = 1.20f;
+
+        Animator _anim;
+        Animation _legacy;
+        float _lastSpeed;
 
         void Awake()
         {
-            _anim = GetComponent<Animation>();
-            _anim.playAutomatically = false;
-            _anim.cullingType = AnimationCullingType.AlwaysAnimate;
-
-            SetLoop(idleClip, true);
-            SetLoop(walkClip, true);
-            foreach (var n in attackClips) SetLoop(n, false);
-            foreach (var n in dodgeClips)  SetLoop(n, false);
-            foreach (var n in hitClips)    SetLoop(n, false);
-            SetLoop(deathClip, false);
+            _anim = GetComponent<Animator>();
+            _legacy = GetComponent<Animation>();
+            useAnimator = _anim != null; // prefer Animator when present
+            if (!useAnimator && _legacy == null)
+            {
+                // Failsafe: stay silent rather than throw; callers only depend on returned durations.
+                Debug.LogWarning($"[{name}] MeleeAnimator: no Animator or Animation found. Calls will no-op.");
+            }
         }
 
-        void SetLoop(string clip, bool loop)
-        {
-            if (string.IsNullOrEmpty(clip)) return;
-            var c = _anim.GetClip(clip);
-            if (c) c.wrapMode = loop ? WrapMode.Loop : WrapMode.Once;
-        }
-
-        // --- Helpers ---
-        float DurationSeconds(string clip, float speed)
-        {
-            if (string.IsNullOrEmpty(clip) || _anim[clip] == null) return 0f;
-            speed = Mathf.Max(0.05f, speed);
-            return _anim[clip].length / speed;
-        }
-        void SetSpeed(string clip, float speed)
-        {
-            if (string.IsNullOrEmpty(clip) || _anim[clip] == null) return;
-            _anim[clip].speed = Mathf.Max(0.05f, speed);
-        }
-        void CrossFadeIf(string clip, float fade) { if (!string.IsNullOrEmpty(clip) && _anim.GetClip(clip) != null) _anim.CrossFade(clip, fade); }
-
+        // Locomotion
         public float PlayIdle()
         {
-            SetSpeed(idleClip, idleSpeed);
-            CrossFadeIf(idleClip, 0.1f);
-            return DurationSeconds(idleClip, idleSpeed);
-        }
-        public void EnsureIdlePlaying()
-        {
-            if (!_anim.IsPlaying(idleClip)) PlayIdle();
-        }
-        public float PlayWalk()
-        {
-            SetSpeed(walkClip, walkSpeed);
-            CrossFadeIf(walkClip, 0.1f);
-            return DurationSeconds(walkClip, walkSpeed);
-        }
-        public float PlayAttack(string clip)
-        {
-            if (string.IsNullOrEmpty(clip) || _anim.GetClip(clip) == null) return PlayIdle();
-            SetSpeed(clip, attackSpeed);
-            _anim.CrossFade(clip, 0.1f);
-            _anim.CrossFadeQueued(idleClip, 0.1f, QueueMode.CompleteOthers);
-            return DurationSeconds(clip, attackSpeed);
-        }
-        public float PlayDodge(string clip)
-        {
-            if (string.IsNullOrEmpty(clip) || _anim.GetClip(clip) == null) return PlayIdle();
-            SetSpeed(clip, dodgeSpeed);
-            _anim.CrossFade(clip, 0.05f);
-            _anim.CrossFadeQueued(idleClip, 0.1f, QueueMode.CompleteOthers);
-            return DurationSeconds(clip, dodgeSpeed);
-        }
-        public float PlayHit(string clip)
-        {
-            if (string.IsNullOrEmpty(clip) || _anim.GetClip(clip) == null) return 0f;
-            SetSpeed(clip, hitSpeed);
-            _anim.CrossFade(clip, 0.05f);
-            _anim.CrossFadeQueued(idleClip, 0.1f, QueueMode.CompleteOthers);
-            return DurationSeconds(clip, hitSpeed);
-        }
-        public float PlayDeath()
-        {
-            if (string.IsNullOrEmpty(deathClip) || _anim.GetClip(deathClip) == null) return 0f;
-            SetSpeed(deathClip, deathSpeed);
-            CrossFadeIf(deathClip, 0.15f);
-            return DurationSeconds(deathClip, deathSpeed);
+            if (useAnimator && _anim) { SetSpeed(0f); }
+            else if (_legacy) { CrossFadeSafe(clipIdle, 0.1f, true); }
+            return idleDuration;
         }
 
-        public string PickAttack() => Pick(attackClips);
-        public string PickDodge()  => Pick(dodgeClips);
-        public string PickHit()    => Pick(hitClips);
-        static string Pick(string[] arr) => (arr == null || arr.Length == 0) ? null : arr[Random.Range(0, arr.Length)];
+        public float PlayWalk(float speed01 = 1f)
+        {
+            if (useAnimator && _anim) { SetSpeed(Mathf.Clamp01(speed01)); }
+            else if (_legacy) { CrossFadeSafe(clipWalk, 0.1f, true); }
+            return walkTickDuration;
+        }
+
+        public void EnsureIdlePlaying()
+        {
+            if (useAnimator)
+            {
+                if (_lastSpeed > 0f) SetSpeed(0f);
+            }
+            else if (_legacy)
+            {
+                if (!_legacy.IsPlaying(clipIdle)) CrossFadeSafe(clipIdle, 0.1f, true);
+            }
+        }
+
+        public void SetSpeed(float v)
+        {
+            _lastSpeed = v;
+            if (useAnimator && _anim) _anim.SetFloat(speedParam, v);
+        }
+
+        // Combat
+        public float PlayAttack(bool heavy = false)
+        {
+            if (useAnimator && _anim)
+            {
+                _anim.SetBool(heavyBool, heavy);
+                _anim.ResetTrigger(attackTrigger);
+                _anim.SetTrigger(attackTrigger);
+            }
+            else if (_legacy)
+            {
+                var clip = heavy ? clipAttackHeavy : clipAttackLight;
+                CrossFadeSafe(clip, 0.05f, false);
+            }
+            return heavy ? attackHeavyDuration : attackLightDuration;
+        }
+
+        public float SetBlock(bool value)
+        {
+            if (useAnimator && _anim)
+                _anim.SetBool(blockBool, value);
+            else if (_legacy)
+            {
+                if (value) CrossFadeSafe(clipBlockLoop, 0.05f, true);
+                else CrossFadeSafe(clipIdle, 0.1f, true);
+            }
+            return blockEnterExitDuration;
+        }
+
+        public float PlayHit()
+        {
+            if (useAnimator && _anim)
+            {
+                _anim.ResetTrigger(hitTrigger);
+                _anim.SetTrigger(hitTrigger);
+            }
+            else if (_legacy) CrossFadeSafe(clipHit, 0.02f, false);
+            return hitDuration;
+        }
+
+        public float PlayDie()
+        {
+            if (useAnimator && _anim)
+            {
+                _anim.ResetTrigger(dieTrigger);
+                _anim.SetTrigger(dieTrigger);
+            }
+            else if (_legacy) CrossFadeSafe(clipDie, 0.02f, false);
+            return dieDuration;
+        }
+
+        // Legacy helper
+        void CrossFadeSafe(string clipName, float fade, bool loop)
+        {
+            if (!_legacy) return;
+            var c = _legacy.GetClip(clipName);
+            if (!c)
+            {
+                if (clipName == clipWalk) c = _legacy.GetClip("Walking_B") ?? _legacy.GetClip("Walking_C");
+                if (!c) return;
+            }
+            c.wrapMode = loop ? WrapMode.Loop : WrapMode.Default;
+            _legacy.CrossFade(c.name, Mathf.Clamp(fade, 0f, 0.25f));
+        }
     }
 }
