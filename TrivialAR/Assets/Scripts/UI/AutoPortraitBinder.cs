@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using Combat;   // Team, TurnBasedMeleeAI
+using Combat;   // Team, MeleeAI
 
 namespace UI
 {
@@ -9,29 +9,27 @@ namespace UI
     {
         [Header("Bind")]
         public Team team = Team.Main;
-        [Tooltip("RawImage that will display the portrait (must be RawImage, not Image).")]
         public RawImage targetRawImage;
 
         [Header("Framing")]
-        [Tooltip("Orthographic half-height in meters (tune per model scale).")]
         public float orthoSize = 0.06f;
-        [Tooltip("Camera is placed this far IN FRONT of face (meters).")]
         public float forwardOffset = 0.14f;
-        [Tooltip("Slight upward offset to center face (meters).")]
         public float upOffset = 0.02f;
 
         [Header("Render")]
         public int textureSize = 256;
-        public LayerMask cullingMaskForThisTeam; // e.g. set to Main or Enemy layer
-        public Color clearColor = new Color(0,0,0,0); // transparent
+        public LayerMask cullingMaskForThisTeam;
+        public Color clearColor = new Color(0, 0, 0, 0);
 
         Camera _cam;
         RenderTexture _rt;
         Transform _head;
         MeleeAI _unit;
+        bool _primed;
 
         void OnEnable()
         {
+            _primed = false;
             TryBind();
         }
 
@@ -52,46 +50,57 @@ namespace UI
                 TryBind();
                 return;
             }
+
             if (!_head) _head = FindHead(_unit.transform);
+            if (!_cam || !_rt) EnsureRenderTargets();
 
             if (_cam && _head)
             {
-                // Camera sits in front of face looking back at it
                 var fwd = _head.forward;
-                var up  = Vector3.up;
+                var up = Vector3.up;
                 var pos = _head.position + fwd * forwardOffset + up * upOffset;
 
                 _cam.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(-fwd, up));
                 _cam.orthographicSize = orthoSize;
+
+                // One-time force render to avoid blank first frame
+                if (!_primed)
+                {
+                    if (!_rt.IsCreated()) _rt.Create();
+                    _cam.Render();
+                    _primed = true;
+                }
             }
         }
 
         void TryBind()
         {
-            // 1) find the unit by team
-            _unit = FindUnit(team);
+            if (!_unit) _unit = FindUnit(team);
             if (!_unit) return;
 
-            // 2) find head (HeadAnchor > Humanoid Head > fallback to renderer bounds)
-            _head = FindHead(_unit.transform);
+            if (!_head) _head = FindHead(_unit.transform);
 
-            // 3) ensure RT + camera exist
             EnsureRenderTargets();
 
-            if (targetRawImage && _rt) targetRawImage.texture = _rt;
+            if (targetRawImage && _rt && targetRawImage.texture != _rt)
+                targetRawImage.texture = _rt;
         }
 
         void EnsureRenderTargets()
         {
-            if (_rt == null)
+            if (_rt == null || _rt.width != textureSize || _rt.height != textureSize)
             {
+                if (_rt != null) { if (_cam && _cam.targetTexture == _rt) _cam.targetTexture = null; _rt.Release(); Destroy(_rt); }
                 _rt = new RenderTexture(textureSize, textureSize, 16, RenderTextureFormat.ARGB32)
                 {
                     useMipMap = false,
-                    autoGenerateMips = false
+                    autoGenerateMips = false,
+                    name = $"PortraitRT_{team}"
                 };
                 _rt.Create();
+                _primed = false;
             }
+
             if (_cam == null)
             {
                 var go = new GameObject($"PortraitCam_{team}");
@@ -100,13 +109,29 @@ namespace UI
                 _cam.clearFlags = CameraClearFlags.SolidColor;
                 _cam.backgroundColor = clearColor;
                 _cam.nearClipPlane = 0.01f;
-                _cam.farClipPlane  = 1.0f;
-                _cam.cullingMask = cullingMaskForThisTeam; // set in Inspector to only this team’s layer
+                _cam.farClipPlane = 1.0f;
+
+                // SRP-safe: DO NOT touch stereoTargetEye.
+                // _cam.stereoTargetEye = StereoTargetEyeMask.None; // <-- removed
+
                 _cam.allowHDR = false;
                 _cam.allowMSAA = false;
-                _cam.stereoTargetEye = StereoTargetEyeMask.None;
                 _cam.depth = -100f;
+
+                _cam.cullingMask = cullingMaskForThisTeam.value != 0
+                    ? cullingMaskForThisTeam
+                    : (1 << (_unit ? _unit.gameObject.layer : 0));
+
                 _cam.targetTexture = _rt;
+                _primed = false;
+            }
+            else
+            {
+                // Keep mask up-to-date if inspector left it 0
+                if (cullingMaskForThisTeam.value == 0 && _unit)
+                    _cam.cullingMask = (1 << _unit.gameObject.layer);
+
+                if (_cam.targetTexture != _rt) _cam.targetTexture = _rt;
             }
         }
 
@@ -121,11 +146,11 @@ namespace UI
         {
             if (!root) return null;
 
-            // 1) Explicit anchor preferred
+            // Preferred explicit anchor
             var anchor = FindChildByName(root, "HeadAnchor");
             if (anchor) return anchor;
 
-            // 2) Humanoid Animator bone
+            // Humanoid head bone
             var anim = root.GetComponentInChildren<Animator>();
             if (anim && anim.isHuman)
             {
@@ -133,16 +158,16 @@ namespace UI
                 if (bone) return bone;
             }
 
-            // 3) Fallback: top of renderer bounds
+            // Bounds-based fallback
             var rends = root.GetComponentsInChildren<Renderer>();
             if (rends.Length > 0)
             {
                 var b = new Bounds(root.position, Vector3.zero);
-                foreach (var r in rends) { if (r.enabled) b.Encapsulate(r.bounds); }
+                foreach (var r in rends) if (r.enabled) b.Encapsulate(r.bounds);
                 var t = new GameObject("HeadApprox").transform;
                 t.position = new Vector3(b.center.x, b.max.y - 0.05f * b.size.y, b.center.z);
                 t.forward = root.forward;
-                t.SetParent(root, worldPositionStays: true);
+                t.SetParent(root, true);
                 return t;
             }
             return root;

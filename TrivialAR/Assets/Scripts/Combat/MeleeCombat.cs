@@ -44,8 +44,9 @@ namespace Combat
 
             // apply damage
             var hp = target.GetComponent<Health>();
-            hp?.TakeDamage(damage);
-            BattleEvents.AnnounceDamage(target, damage);
+            float finalDamage = DamageCalculator.ComputeMelee(attacker.gameObject, target.gameObject, damage); // uses stats + weapon; falls back to 'damage'
+            hp?.TakeDamage(finalDamage);
+            BattleEvents.AnnounceDamage(target, finalDamage);
 
             // victim hit anim (if alive)
             var tAnim = target.GetComponent<MeleeAnimator>();
