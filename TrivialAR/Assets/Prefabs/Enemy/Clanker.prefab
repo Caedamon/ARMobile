@@ -307,7 +307,8 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 7
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2223639932434330405, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -3765730656097933308, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
@@ -317,9 +318,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7379725903858646153}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: -2035568485109208367}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
       insertIndex: -1
       addedObject: {fileID: -8639263119309427048}
@@ -378,7 +376,7 @@ Animator:
   m_GameObject: {fileID: 2415132590489711406}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 20885139f384f8b4da95a351a86dd9f8, type: 3}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 53f1f660f615f324c9a33368a5e706c4, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -390,37 +388,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!111 &-2035568485109208367
-Animation:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2415132590489711406}
-  m_Enabled: 1
-  serializedVersion: 4
-  m_Animation: {fileID: 0}
-  m_Animations:
-  - {fileID: 7769419075285740307, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 4195386022990170606, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 650242174318006946, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: -3851722262833059593, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: -8338831036711338807, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 2188323905074769703, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 5929533664354034034, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 2825485217256495706, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 5176603141605120071, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 4787742288682755051, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 2613239370480212521, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: -9092174892689370499, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: 5420517045014120221, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: -7262739606813465908, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  - {fileID: -4431010552204222233, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
-  m_WrapMode: 0
-  m_PlayAutomatically: 1
-  m_AnimatePhysics: 0
-  m_UpdateMode: 0
-  m_CullingType: 0
 --- !u!54 &-8639263119309427048
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -490,7 +457,7 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 2
-  m_Center: {x: 0, y: 1.7, z: 0}
+  m_Center: {x: 0, y: 2, z: 0}
 --- !u!114 &-6343308323798155803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,7 +502,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95fe1d52cc9c8ab46bb88b219181c9b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  team: 0
+  team: 1
 --- !u!114 &4842806813433072062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -548,7 +515,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1dd5b028300d54546930a2f7dfec9fee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useAnimator: 0
+  useAnimator: 1
   speedParam: Speed
   attackTrigger: Attack
   heavyBool: Heavy
@@ -560,8 +527,6 @@ MonoBehaviour:
   clipWalk: Walking_A
   clipAttackLight: 1H_Melee_Attack_Slice_Horizontal
   clipAttackHeavy: 2H_Melee_Attack_Spinning
-  clipKick: 1H_Melee_Attack_Kick
-  clipPunch: 1H_Melee_Attack_Punch
   clipBlockLoop: Blocking
   clipHit: Hit_A
   clipDie: Death_A
@@ -570,10 +535,10 @@ MonoBehaviour:
   walkTickDuration: 0.5
   attackLightDuration: 0.7
   attackHeavyDuration: 0.95
+  blockEnterExitDuration: 0.2
   hitDuration: 0.45
   dieDuration: 1.2
   dodgeDuration: 0.6
-  blockEnterExitDuration: 0.2
 --- !u!114 &4586191795488584454
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -645,7 +610,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccf9e09393e63c34381994a4ccc620ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseController: {fileID: 0}
+  baseController: {fileID: 9100000, guid: 53f1f660f615f324c9a33368a5e706c4, type: 2}
 --- !u!114 &1199671469454424630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -673,7 +638,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dce76c75f17f379448aff72af9740122, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sourceClips: []
+  sourceClips:
+  - {fileID: 3963595363326709879, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -1272215259011234369, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 7624655660056751624, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 1543802850930067805, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 2217827441429648498, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 4057375184749903609, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -6055188709596948769, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 7331867130290663325, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 2525151342886339185, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -5510326698207484139, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -7009279140402340920, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -6801083763907307519, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -2841374645993759435, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 3319484248351831561, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -1923750366902163184, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 3311174667178009610, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 4195386022990170606, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 650242174318006946, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -3851722262833059593, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -8338831036711338807, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 2188323905074769703, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 3276804324984143531, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -5698863656139880434, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 5812068982650959540, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 2825485217256495706, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 5929533664354034034, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 5176603141605120071, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 4787742288682755051, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 2613239370480212521, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -9092174892689370499, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: 5420517045014120221, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -7262739606813465908, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
+  - {fileID: -4431010552204222233, guid: fbb35cd2ee6136d49b7f193f75096671, type: 3}
   runAtAwake: 0
 --- !u!4 &7419751244109801083 stripped
 Transform:

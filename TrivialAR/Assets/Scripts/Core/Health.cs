@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Game
+namespace Core
 {
     public class Health : MonoBehaviour
     {

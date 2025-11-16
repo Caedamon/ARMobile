@@ -1,4 +1,3 @@
-// NEW FILE: Weaponary/WeaponDamage.cs
 using UnityEngine;
 
 namespace Weaponary

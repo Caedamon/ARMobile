@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters
+namespace Core
 {
     public class KaijuBody : MonoBehaviour
     {

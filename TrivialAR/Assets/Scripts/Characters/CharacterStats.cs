@@ -8,10 +8,10 @@ namespace Characters
         [Header("Core Stats")]
         [Min(0)] public float EGO = 0f;
         [Min(0)] public float EDUCATION = 0f;
-        [Min(0)] public float MIGHT = 5f;      // main melee scaler
-        [Min(0)] public float INSIGHT = 5f;    // crit chance/multiplier
+        [Min(0)] public float MIGHT = 5f; // main melee scaler
+        [Min(0)] public float INSIGHT = 5f; // crit chance/multiplier
         [Header("Hidden")]
-        [Min(0)] public float LUCK = 5f;       // hidden crit smoothing
+        [Min(0)] public float LUCK = 5f; // hidden crit smoothing
 
         [Header("Meta")]
         [Min(1)] public int Level = 1;
