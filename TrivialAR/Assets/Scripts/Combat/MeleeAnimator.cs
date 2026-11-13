@@ -6,7 +6,7 @@ namespace Combat
     [DisallowMultipleComponent]
     public sealed class MeleeAnimator : MonoBehaviour
     {
-        [SerializeField] bool useAnimator;
+        bool useAnimator;
 
         public string speedParam = "Speed";
         public string attackTrigger = "Attack";

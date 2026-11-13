@@ -200,6 +200,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 2223639932434330405, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
+      propertyPath: m_Animation
+      value: 
+      objectReference: {fileID: 7060811993321468294, guid: f92472c50dd4e2d418540f9a3c47e306, type: 3}
     - target: {fileID: 2510206884250021105, guid: bbaac6affc595fc49bf778d7a660f256, type: 3}
       propertyPath: m_Layer
       value: 7
@@ -291,10 +295,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2415132590489711406}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}

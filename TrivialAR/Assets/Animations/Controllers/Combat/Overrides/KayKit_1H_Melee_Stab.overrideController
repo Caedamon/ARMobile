@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: KayKit_1H_Melee_Stab
+  m_Controller: {fileID: 9100000, guid: 78bfcef89366b1fddc752125caf39548, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 4043807988371827432, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    m_OverrideClip: {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}

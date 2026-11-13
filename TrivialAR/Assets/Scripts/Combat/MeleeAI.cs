@@ -36,6 +36,10 @@ namespace Combat
             _motor = GetComponent<MeleeMotor>();
             _combat= GetComponent<MeleeCombat>();
             _hp    = GetComponent<Health>();
+        }
+
+        void Start()
+        {
             _anim.PlayIdle();
         }
 

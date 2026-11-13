@@ -52,6 +52,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: FrostGolem
       objectReference: {fileID: 0}
+    - target: {fileID: 2223639932434330405, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
+      propertyPath: m_Animation
+      value: 
+      objectReference: {fileID: 7060811993321468294, guid: f92472c50dd4e2d418540f9a3c47e306, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
