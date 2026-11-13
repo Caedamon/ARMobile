@@ -1,5 +1,6 @@
 // Editor/WeaponaryBaseAnimatorFactory.cs
 #if UNITY_EDITOR
+using Animation;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -129,7 +130,7 @@ namespace editor
             anim.runtimeAnimatorController = ctrl;
 
             // Remove legacy Animation if present
-            var legacy = obj.GetComponent<Animation>();
+            var legacy = obj.GetComponent<UnityEngine.Animation>();
             if (legacy) Object.DestroyImmediate(legacy);
 
             var lib = obj.GetComponent<WeaponAnimationLibrary>() ?? obj.AddComponent<WeaponAnimationLibrary>();

@@ -1,3 +1,4 @@
+using Animation;
 using UnityEngine;
 
 namespace Weaponary

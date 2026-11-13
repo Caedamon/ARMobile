@@ -19,6 +19,7 @@ namespace Animation
             public AnimationClip block;
             public AnimationClip hit;
             public AnimationClip dodge;
+            public AnimationClip die;
 
             // seed singles (kept for compatibility; optional now)
             public AnimationClip attackLight;

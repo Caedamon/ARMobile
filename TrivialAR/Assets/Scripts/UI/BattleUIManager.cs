@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using TMPro;
 using Combat;
 using Core;
-using Game;
 
 namespace UI
 {

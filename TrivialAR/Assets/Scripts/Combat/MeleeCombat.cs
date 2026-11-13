@@ -1,6 +1,5 @@
 using Characters;
 using Core;
-using Game;
 using UnityEngine;
 
 namespace Combat

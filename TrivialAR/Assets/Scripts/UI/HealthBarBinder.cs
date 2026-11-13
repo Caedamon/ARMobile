@@ -1,5 +1,5 @@
 using System.Reflection;
-using Game;
+using Core;
 using UnityEngine;
 using UnityEngine.UI;
 
