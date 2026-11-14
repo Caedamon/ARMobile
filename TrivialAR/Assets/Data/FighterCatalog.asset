@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70781e21a8f723744b2f7b9d3b92d941, type: 3}
+  m_Name: FighterCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.FighterCatalog
+  models:
+  - id: Barbarian
+    playerPrefab: {fileID: 3687261703441103055, guid: a7de63bc3ead19c48984bfd5ba8e7735, type: 3}
+    enemyPrefab: {fileID: 3687261703441103055, guid: 4d59c17c7cbcda942865b4e09256493c, type: 3}
+    large: 0
+  - id: Ninja
+    playerPrefab: {fileID: 3007590227721517, guid: 6afea466e653eaf45ac26ecaab955887, type: 3}
+    enemyPrefab: {fileID: 3007590227721517, guid: 88becb2b453cefa46a6a21ca10d67fdb, type: 3}
+    large: 0
+  - id: OrcRaider
+    playerPrefab: {fileID: 1961115531530012616, guid: dc8acb8b9ddc7cc4daeb0932dd99ee46, type: 3}
+    enemyPrefab: {fileID: 1961115531530012616, guid: 717f137c44fda6e4381178fb0b8750d3, type: 3}
+    large: 0
+  - id: Paladin_with_Helmet
+    playerPrefab: {fileID: 5370580764246496844, guid: 0d94a9635034e584797d8ba28d45827a, type: 3}
+    enemyPrefab: {fileID: 5370580764246496844, guid: d6aa69195d39c3e4ab7ad8c04059da22, type: 3}
+    large: 0
+  - id: Robot_One
+    playerPrefab: {fileID: 6779304755773260306, guid: 150345bc74d7e0d4aa463ef579b6321f, type: 3}
+    enemyPrefab: {fileID: 6779304755773260306, guid: 1510990e07787ac4ca2ed19219d25486, type: 3}
+    large: 0
+  - id: RogueHooded
+    playerPrefab: {fileID: 7577907433067433921, guid: 23410d55d38a9a44880b516a6fdf6cd1, type: 3}
+    enemyPrefab: {fileID: 7577907433067433921, guid: 21f7931c844927748a78eec3564d0e62, type: 3}
+    large: 0
+  - id: Skeleton_Warrior
+    playerPrefab: {fileID: 767177606455043188, guid: 16ee737818256ac4085bfdeee6e1bd53, type: 3}
+    enemyPrefab: {fileID: 767177606455043188, guid: 237f61b9c40e1e941a74692dad5f27b2, type: 3}
+    large: 0
+  - id: Tiefling
+    playerPrefab: {fileID: 3220076967125893012, guid: 0695ea8d673d9584aa1d78f84082fd9c, type: 3}
+    enemyPrefab: {fileID: 3220076967125893012, guid: 9a01b6570c78368448c853eb18e887f8, type: 3}
+    large: 0
+  - id: Vampire
+    playerPrefab: {fileID: 6006278276414900756, guid: 5ced5f8012c37fe41983e4f1626d1791, type: 3}
+    enemyPrefab: {fileID: 6006278276414900756, guid: 873e03a3b85112a4c84d9950d804bb5a, type: 3}
+    large: 0
+  - id: Caveman
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 4493398805262521826, guid: 0129c453a5b48974185954738083b47a, type: 3}
+    large: 0
+  - id: BlackKnight
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 5762531175375556195, guid: f40eb2836a9f3804e8869b91c035c58e, type: 3}
+    large: 1
+  - id: Clanker
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 2415132590489711406, guid: 1f376566ec471874a9fe37aff7502ea9, type: 3}
+    large: 1
+  - id: FrostGolem
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 7977578406141791347, guid: 9ee337a2e18d42f40a4743be21858bd8, type: 3}
+    large: 1
+  - id: Skeleton_Golem
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 1574849468503033536, guid: ac2824074c74bd84897c1831028329db, type: 3}
+    large: 1
+  - id: Necromancer
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 2150174952430807091, guid: 5ae7587026e8f374a9b90796ed36982b, type: 3}
+    large: 0
+  - id: Skeleton_Minion
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 4302060278916776444, guid: f404b98397a13c44d8b0e2a7ce2352c4, type: 3}
+    large: 0
+  - id: Skeleton_Rogue
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 5358448900684015421, guid: 18011be4b75295e4690e2b6f03ded341, type: 3}
+    large: 0
+  - id: Werewolf_Wolf
+    playerPrefab: {fileID: 0}
+    enemyPrefab: {fileID: 4948997714562618650, guid: e6f2213d8015a3b40928ac66bc9f4074, type: 3}
+    large: 0

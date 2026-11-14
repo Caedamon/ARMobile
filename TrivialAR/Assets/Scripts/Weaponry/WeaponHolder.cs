@@ -103,6 +103,7 @@ namespace Weaponary
             var go = Instantiate(prefab, socket);
             go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.identity;
+            Fighters.FighterIdentity.SetLayerRecursive(go.transform, socket.gameObject.layer);   // visible to this team's portrait camera
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) c.enabled = false;
             foreach (var rb in go.GetComponentsInChildren<Rigidbody>(true)) rb.isKinematic = true;
             return go;
