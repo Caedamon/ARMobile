@@ -23,6 +23,8 @@ namespace Fighters
             if (layer >= 0) SetLayerRecursive(transform, layer);
             else Debug.LogWarning("[FighterIdentity] Layer 'Main' or 'Enemy' not found in Project Settings > Tags and Layers.", this);
 
+            SetupPortraitAnchor();
+
             // Stats (fighter prefabs don't have this component yet, so add it)
             var stats = GetComponent<CharacterStats>();
             if (stats == null) stats = gameObject.AddComponent<CharacterStats>();
@@ -49,6 +51,28 @@ namespace Fighters
                 seeker.preferredClass = d.preferredClass;
                 seeker.searchRadius = StatRules.SearchRadius(d);
             }
+        }
+
+        // The portrait camera aims at a child called "HeadAnchor". The hand-placed ones on the prefabs differ per rig
+        // (different parent bones, offsets and rotations), so replace them with one that behaves the same for every model.
+        void SetupPortraitAnchor()
+        {
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                if (t != transform && t.name == "HeadAnchor")
+                {
+                    t.name = "HeadAnchor_Legacy";
+                    t.gameObject.SetActive(false);
+                }
+            }
+
+            var animator = GetComponent<Animator>();
+            Transform head = (animator != null && animator.isHuman) ? animator.GetBoneTransform(HumanBodyBones.Head) : null;
+
+            var go = new GameObject("HeadAnchor");
+            go.layer = gameObject.layer;
+            go.transform.SetParent(transform, false);
+            go.AddComponent<PortraitAnchor>().Init(transform, head);
         }
 
         public static void SetLayerRecursive(Transform t, int layer)
