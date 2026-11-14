@@ -83,20 +83,156 @@ ModelImporter:
   importAnimation: 0
   humanDescription:
     serializedVersion: 3
-    human: []
+    human:
+    - boneName: hips
+      humanName: Hips
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: upperleg.l
+      humanName: LeftUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: upperleg.r
+      humanName: RightUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: lowerleg.l
+      humanName: LeftLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: lowerleg.r
+      humanName: RightLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: foot.l
+      humanName: LeftFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: foot.r
+      humanName: RightFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: spine
+      humanName: Spine
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: head
+      humanName: Head
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: upperarm.l
+      humanName: LeftUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: upperarm.r
+      humanName: RightUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: lowerarm.l
+      humanName: LeftLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: lowerarm.r
+      humanName: RightLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: wrist.l
+      humanName: LeftHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: wrist.r
+      humanName: RightHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: toes.l
+      humanName: LeftToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: toes.r
+      humanName: RightToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
     skeleton:
-    - name: Werewolf_Wolf(Clone)
+    - name: Rig_Medium_CombatMelee(Clone)
       parentName: 
       position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Rig
-      parentName: Werewolf_Wolf(Clone)
+    - name: Rig_Medium
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: -0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: root
-      parentName: Rig
+      parentName: Rig_Medium
       position: {x: -0, y: 0, z: 0}
       rotation: {x: -0.000000021855692, y: -0.000000119209275, z: 2.6054013e-15, w: 1}
       scale: {x: 1, y: 1, z: 1}
@@ -163,7 +299,7 @@ ModelImporter:
     - name: handslot.r
       parentName: hand.r
       position: {x: 5.2087756e-10, y: 0.096125245, z: -0.057499886}
-      rotation: {x: -0.000000037064783, y: -8.281551e-10, z: -0.7071068, w: 0.7071067}
+      rotation: {x: -0.000000016437719, y: 0.000000019798906, z: -0.7071068, w: 0.7071067}
       scale: {x: 1, y: 1, z: 1}
     - name: head
       parentName: chest
@@ -210,123 +346,33 @@ ModelImporter:
       position: {x: 0.000000019147043, y: 0.16565004, z: -0.000000010191608}
       rotation: {x: -0.000000022296472, y: 0.9203549, z: -0.39108422, w: -0.00000013520682}
       scale: {x: 1, y: 0.9999976, z: 1.0000035}
-    - name: kneeIK.l
-      parentName: root
-      position: {x: -0.1709449, y: 0.29231027, z: 0.57581246}
-      rotation: {x: 0.7071068, y: 0.00000022930232, z: 0.000000046055135, w: 0.7071067}
-      scale: {x: 1, y: 0.99999994, z: 0.99999994}
-    - name: control-toe-roll.l
-      parentName: root
-      position: {x: -0.17094497, y: 0.025990263, z: 0.24578938}
-      rotation: {x: -0.7071067, y: 0.000000070528486, z: 0.00000007052848, w: 0.7071068}
+    - name: Mannequin_Head
+      parentName: Rig_Medium_CombatMelee(Clone)
+      position: {x: -0, y: 1.2158737, z: -0.00000013709068}
+      rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: control-heel-roll.l
-      parentName: control-toe-roll.l
-      position: {x: -0.00000001945811, y: 0.36283267, z: -0.000000019596568}
-      rotation: {x: -7.1054375e-15, y: -1.00916035e-22, z: 1, w: -6.123234e-17}
-      scale: {x: 1, y: 1, z: 1}
-    - name: control-foot-roll.l
-      parentName: control-heel-roll.l
-      position: {x: -0.0000000037529446, y: 0.21343614, z: 0.000000003538337}
-      rotation: {x: 0.00000012957192, y: 0.39108437, z: 0.92035484, w: 0.0000000896225}
-      scale: {x: 1, y: 1.0000002, z: 1.0000002}
-    - name: heelIK.l
-      parentName: control-foot-roll.l
-      position: {x: 0.00000002121244, y: 0.16565005, z: -4.3475623e-10}
-      rotation: {x: -0.39108443, y: 0.00000006885003, z: 0.00000006562883, w: 0.92035484}
-      scale: {x: 1, y: 1, z: 1.0000001}
-    - name: IK-foot.l
-      parentName: control-foot-roll.l
-      position: {x: 0.00000002121244, y: 0.16565005, z: -4.3475623e-10}
-      rotation: {x: 1, y: 4.6537017e-14, z: -0.00000019470718, w: 0.00000013315805}
-      scale: {x: 1, y: 1, z: 1}
-    - name: IK-toe.l
-      parentName: control-heel-roll.l
-      position: {x: 0.000000004556949, y: -0.0000000027572362, z: -0.000000019596566}
-      rotation: {x: 0.00000005860104, y: 1.2081927e-15, z: 0.000000019466935, w: 1}
-      scale: {x: 1, y: 0.99999994, z: 1}
-    - name: kneeIK.r
-      parentName: root
-      position: {x: 0.17094517, y: 0.29231027, z: 0.57581234}
-      rotation: {x: 0.7071068, y: 0.000000038238493, z: -0.00000014500868, w: 0.7071067}
-      scale: {x: 1, y: 0.99999994, z: 0.99999994}
-    - name: control-toe-roll.r
-      parentName: root
-      position: {x: 0.1709451, y: 0.025990263, z: 0.2457893}
-      rotation: {x: -0.7071067, y: 0.000000070528486, z: 0.00000007052848, w: 0.7071068}
-      scale: {x: 1, y: 1, z: 1}
-    - name: control-heel-roll.r
-      parentName: control-toe-roll.r
-      position: {x: -0.00000001945811, y: 0.36283267, z: -0.000000019596564}
-      rotation: {x: -7.1054375e-15, y: -1.00916035e-22, z: 1, w: -6.123234e-17}
-      scale: {x: 1, y: 1, z: 1}
-    - name: control-foot-roll.r
-      parentName: control-heel-roll.r
-      position: {x: -0.000000003752945, y: 0.21343614, z: 0.0000000035383365}
-      rotation: {x: 0.00000012957192, y: 0.39108437, z: 0.92035484, w: 0.0000000896225}
-      scale: {x: 1, y: 1.0000002, z: 1.0000002}
-    - name: heelIK.r
-      parentName: control-foot-roll.r
-      position: {x: -0.00000000858988, y: 0.16565005, z: 0.0000000013660788}
-      rotation: {x: -0.39108443, y: 0.00000006885007, z: 0.00000006562882, w: 0.92035484}
-      scale: {x: 1, y: 1, z: 1.0000001}
-    - name: IK-foot.r
-      parentName: control-foot-roll.r
-      position: {x: -0.00000000858988, y: 0.16565005, z: 0.0000000013660788}
-      rotation: {x: 1, y: 4.6537017e-14, z: -0.00000019470718, w: 0.00000013315805}
-      scale: {x: 1, y: 1, z: 1}
-    - name: IK-toe.r
-      parentName: control-heel-roll.r
-      position: {x: 0.000000004556948, y: -0.000000001167181, z: -0.000000019596566}
-      rotation: {x: 0.00000005860104, y: 1.2081928e-15, z: 0.000000019466935, w: 1}
-      scale: {x: 1, y: 0.99999994, z: 1}
-    - name: elbowIK.l
-      parentName: root
-      position: {x: -0.45350748, y: 1.1067611, z: -0.58885944}
-      rotation: {x: -0.7071067, y: 0.0000000727951, z: 0.00000007279507, w: 0.7071069}
-      scale: {x: 1, y: 1, z: 1}
-    - name: handIK.l
-      parentName: root
-      position: {x: -0.71318156, y: 1.1067611, z: 0.00000025491414}
-      rotation: {x: -0.50000006, y: 0.49999997, z: 0.49999997, w: 0.50000006}
-      scale: {x: 0.9999999, y: 0.99999976, z: 0.99999994}
-    - name: elbowIK.r
-      parentName: root
-      position: {x: 0.45350718, y: 1.1067611, z: -0.5888596}
-      rotation: {x: -0.7071067, y: 0.0000000727951, z: 0.00000007279507, w: 0.7071069}
-      scale: {x: 1, y: 1, z: 1}
-    - name: handIK.r
-      parentName: root
-      position: {x: 0.71318156, y: 1.1067611, z: -0.00000008515731}
-      rotation: {x: 0.50000006, y: 0.49999994, z: 0.5, w: -0.5}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_LegLeft
-      parentName: Werewolf_Wolf(Clone)
+    - name: Mannequin_ArmLeft
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_ArmLeft
-      parentName: Werewolf_Wolf(Clone)
+    - name: Mannequin_ArmRight
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_LegRight
-      parentName: Werewolf_Wolf(Clone)
+    - name: Mannequin_LegLeft
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_ArmRight
-      parentName: Werewolf_Wolf(Clone)
+    - name: Mannequin_LegRight
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_Head
-      parentName: Werewolf_Wolf(Clone)
-      position: {x: 0.000015258789, y: 1.2158737, z: -0.0000019073485}
-      rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
-      scale: {x: 1, y: 1, z: 1}
-    - name: Werewolf_Wolf_Body
-      parentName: Werewolf_Wolf(Clone)
+    - name: Mannequin_Body
+      parentName: Rig_Medium_CombatMelee(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
@@ -338,15 +384,15 @@ ModelImporter:
     legStretch: 0.05
     feetSpacing: 0
     globalScale: 1
-    rootMotionBoneName: root
+    rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 2
+  animationType: 3
   humanoidOversampling: 1
-  avatarSetup: 1
+  avatarSetup: 2
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0

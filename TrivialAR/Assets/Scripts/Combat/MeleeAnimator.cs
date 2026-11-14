@@ -43,6 +43,13 @@ namespace Combat
         UnityEngine.Animation _legacy; // fully qualified to avoid namespace clash
         bool _animReady;
         float _lastSpeed;
+        
+        void Start()
+        {
+            _animReady = (_anim != null && _anim.runtimeAnimatorController != null);
+            useAnimator = _animReady;
+            RecalculateDurationsFromController();
+        }
 
         void Awake()
         {
