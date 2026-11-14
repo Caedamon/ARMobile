@@ -165,6 +165,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 229f36b2f2ebe7a4ea0faee366088932, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3529931025191026220}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 229f36b2f2ebe7a4ea0faee366088932, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7955979064815886156}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 229f36b2f2ebe7a4ea0faee366088932, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3610486730823038699}
   m_SourcePrefab: {fileID: 100100000, guid: 229f36b2f2ebe7a4ea0faee366088932, type: 3}
 --- !u!1 &1574849468503033536 stripped
 GameObject:
@@ -430,6 +436,43 @@ MonoBehaviour:
   knockbackMultiplier: 1
   maxStep: 0.6
   optionalRb: {fileID: -4982796739238638429}
+--- !u!114 &7955979064815886156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1574849468503033536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52a8bf5b564c5b046a8c0e92e6db4a45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponHolder
+  rightSocketName: handslot.r
+  leftSocketName: handslot.l
+  lightAttackOriginalClip: Melee_Unarmed_Punch
+--- !u!114 &3610486730823038699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1574849468503033536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1faaaf4ca9c8ae409d26390b67cf3ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.WeaponSeeker
+  hasPreferredClass: 0
+  preferredClass: 1
+  preferredBonus: 2
+  searchRadius: 5
+  engageDistance: 0.25
+  raceMargin: 0.8
+  contestedPenalty: 0.35
+  pickupRange: 0.06
+  rushMultiplier: 2
+  pickupPauseSeconds: 0.5
 --- !u!4 &5690575421443190772 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2890351238813346715, guid: 229f36b2f2ebe7a4ea0faee366088932, type: 3}

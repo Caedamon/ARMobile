@@ -22,6 +22,10 @@ namespace Combat
 
         public bool IsDead => _hp != null && _hp.IsDead;
 
+        // Weapon scramble: true while this unit is spending its rounds going for a weapon.
+        public bool IsSeekingWeapon => _seeker != null && _seeker.IsSeeking;
+        public void ResolveSeek() { LastActionDuration = _seeker != null ? _seeker.ExecuteSeekStep() : _anim.PlayIdle(); }
+
         public float MoveStepMeters => _motor != null ? _motor.moveStepMeters : 0.025f;
         public float AttackRange    => _motor != null ? _motor.attackRange    : 0.095f;
 
@@ -29,6 +33,7 @@ namespace Combat
         MeleeMotor _motor;
         MeleeCombat _combat;
         Health _hp;
+        WeaponSeeker _seeker;
 
         void Awake()
         {
@@ -36,6 +41,7 @@ namespace Combat
             _motor = GetComponent<MeleeMotor>();
             _combat= GetComponent<MeleeCombat>();
             _hp    = GetComponent<Health>();
+            _seeker = GetComponent<WeaponSeeker>();
         }
 
         void Start()
@@ -49,6 +55,10 @@ namespace Combat
         public void FinalizeIntent()
         {
             if (IsDead) { Intent = Intent.Idle; return; }
+
+            // Unarmed fighters head for a weapon first (see WeaponSeeker for the rules).
+            if (_seeker != null && _seeker.PlanSeek()) { Intent = Intent.Move; return; }
+
             var opp = FindClosestEnemy();
             CachedTarget = opp;
             if (!opp || opp.IsDead) { Intent = Intent.Idle; return; }

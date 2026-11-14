@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a48df6886e71c41bbd91ed249edca1, type: 3}
+  m_Name: Warhammer
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
+  displayName: Warhammer
+  weaponClass: 1
+  visualPrefab: {fileID: 6078755497004322357, guid: 73c0f6a6621503d4689e094395302a2a, type: 3}
+  offhandVisualPrefab: {fileID: 0}
+  baseDamage: 30
+  damageScalar: 1
+  reach: 0.11
+  attackClips:
+  - {fileID: 4043807988371827432, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  - {fileID: 5034251128425565466, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  - {fileID: -8653722278162725603, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  - {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}

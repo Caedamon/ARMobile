@@ -123,15 +123,24 @@ namespace Combat
         {
             bool heavy = !string.IsNullOrEmpty(key) && key.ToLowerInvariant().Contains("heavy");
 
-            var picker = GetComponent<Weaponary.AttackVariantPicker>();
-            picker?.PrepareAttack(heavy);
+            // Weapon scramble: an equipped weapon supplies its own attack clip.
+            var holder = GetComponent<Weaponary.WeaponHolder>();
+            bool weaponClip = holder != null && holder.PrepareAttack();
+            if (!weaponClip)
+            {
+                var picker = GetComponent<Weaponary.AttackVariantPicker>();
+                picker?.PrepareAttack(heavy);
+            }
+
+            float duration = weaponClip ? holder.LastAttackDuration
+                                        : (heavy ? attackHeavyDuration : attackLightDuration);
 
             if (useAnimator)
             {
                 _anim.SetBool(heavyBool, heavy);
                 _anim.ResetTrigger(attackTrigger);
                 _anim.SetTrigger(attackTrigger);
-                return heavy ? attackHeavyDuration : attackLightDuration;
+                return duration;
             }
 
             if (_legacy != null)
@@ -139,7 +148,7 @@ namespace Combat
                 var clip = heavy ? clipAttackHeavy : clipAttackLight;
                 if (!CrossFade(clip, 0.05f, false)) CrossFade(clipIdle, 0.05f, true);
             }
-            return heavy ? attackHeavyDuration : attackLightDuration;
+            return duration;
         }
 
         public string PickHit() { return "Hit"; }

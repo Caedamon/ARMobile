@@ -165,6 +165,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bd2b8511632d35d4b9768823fa7ab94d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5379691878502441365}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bd2b8511632d35d4b9768823fa7ab94d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8637486114080650629}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bd2b8511632d35d4b9768823fa7ab94d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 873474900508554547}
   m_SourcePrefab: {fileID: 100100000, guid: bd2b8511632d35d4b9768823fa7ab94d, type: 3}
 --- !u!4 &2895628808052190555 stripped
 Transform:
@@ -435,3 +441,40 @@ MonoBehaviour:
   knockbackMultiplier: 1
   maxStep: 0.6
   optionalRb: {fileID: 3861286626041270515}
+--- !u!114 &8637486114080650629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5762531175375556195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52a8bf5b564c5b046a8c0e92e6db4a45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponHolder
+  rightSocketName: handslot.r
+  leftSocketName: handslot.l
+  lightAttackOriginalClip: Melee_Unarmed_Punch
+--- !u!114 &873474900508554547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5762531175375556195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1faaaf4ca9c8ae409d26390b67cf3ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.WeaponSeeker
+  hasPreferredClass: 0
+  preferredClass: 1
+  preferredBonus: 2
+  searchRadius: 5
+  engageDistance: 0.25
+  raceMargin: 0.8
+  contestedPenalty: 0.35
+  pickupRange: 0.06
+  rushMultiplier: 2
+  pickupPauseSeconds: 0.5

@@ -73,11 +73,23 @@ namespace Combat
             foreach (var a in alive)
             {
                 if (resolved.Contains(a)) continue;
+
+                // Weapon scramble: units that are grabbing a weapon skip the pairing logic.
+                if (a.IsSeekingWeapon) { a.ResolveSeek(); resolved.Add(a); continue; }
+
                 var b = a.CachedTarget;
 
                 if (b == null || b.IsDead)
                 {
                     a.ResolveSoloIntent(a.MoveStepMeters);
+                    resolved.Add(a);
+                    continue;
+                }
+
+                // Opponent is busy grabbing a weapon: act against them on our own.
+                if (b.IsSeekingWeapon)
+                {
+                    a.ResolveVsOpponent(b, a.MoveStepMeters);
                     resolved.Add(a);
                     continue;
                 }

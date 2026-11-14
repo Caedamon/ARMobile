@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a48df6886e71c41bbd91ed249edca1, type: 3}
+  m_Name: Spear
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
+  displayName: Spear
+  weaponClass: 2
+  visualPrefab: {fileID: 4684735268686508054, guid: 9be8ab039a9e3f0449dfea54ee1cf123, type: 3}
+  offhandVisualPrefab: {fileID: 0}
+  baseDamage: 32
+  damageScalar: 1
+  reach: 0.16
+  attackClips:
+  - {fileID: -3183232228448455838, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  - {fileID: 5005478036900451222, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
