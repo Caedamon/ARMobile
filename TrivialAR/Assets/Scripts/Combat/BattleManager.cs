@@ -30,7 +30,9 @@ namespace Combat
         public void DiscoverUnits()
         {
             _units.Clear();
-            _units.AddRange(FindObjectsByType<MeleeAI>(FindObjectsSortMode.None));
+            // Skip disabled units (roster display fighters have their AI switched off).
+            foreach (var u in FindObjectsByType<MeleeAI>(FindObjectsSortMode.None))
+                if (u != null && u.isActiveAndEnabled) _units.Add(u);
             if (log) Debug.Log($"[Battle] DiscoverUnits → {_units.Count}");
         }
 

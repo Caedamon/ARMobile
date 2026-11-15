@@ -155,7 +155,7 @@ namespace Combat
             float bestSqr = float.MaxValue;
             foreach (var u in FindObjectsByType<MeleeAI>(FindObjectsSortMode.None))
             {
-                if (u == null || u == _ai || u.IsDead || u.team == _ai.team) continue;
+                if (u == null || u == _ai || !u.isActiveAndEnabled || u.IsDead || u.team == _ai.team) continue;
                 float sq = (u.transform.position - transform.position).sqrMagnitude;
                 if (sq < bestSqr) { bestSqr = sq; best = u; }
             }
