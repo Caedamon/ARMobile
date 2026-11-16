@@ -25,6 +25,8 @@ namespace Game
 
         [Header("Debug")]
         public bool debugLogs = false;
+        [Tooltip("Shows a small readout in the top-left corner (touch devices, last tap, what's under it, recent errors). Turn off when done testing on the phone.")]
+        public bool deviceDebugOverlay = true;
         [Tooltip("Testing: end every fight after ~4 seconds with this result (e.g. to see the tombstone).")]
         public DebugOutcome debugOutcome = DebugOutcome.None;
 
@@ -83,6 +85,8 @@ namespace Game
             _ui.BackClicked += OnBack;
             _ui.DeathMatchClicked += OnDeathMatch;
             _ui.ResultContinueClicked += OnResultContinue;
+
+            if (deviceDebugOverlay) gameObject.AddComponent<DeviceDebugOverlay>().Init(() => _state.ToString());
 
             EnterTitle();
         }

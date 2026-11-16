@@ -11,6 +11,7 @@ namespace Game
 
         public static bool IsOverUI(Vector2 screenPos)
         {
+            if (GameUI.IsPointOverButton(screenPos)) return true;
             var es = EventSystem.current;
             if (es == null) return false;
             var data = new PointerEventData(es) { position = screenPos };

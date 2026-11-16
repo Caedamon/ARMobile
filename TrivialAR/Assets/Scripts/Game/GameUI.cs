@@ -3,6 +3,7 @@ using Fighters;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -54,6 +55,7 @@ namespace Game
         // ------------------------------------------------------------------ build
         void Awake()
         {
+            _instance = this;
             EnsureEventSystem();
             BuildCanvas();
             BuildTitle();
@@ -67,6 +69,73 @@ namespace Game
         void Update()
         {
             if (Screen.safeArea != _lastSafe) ApplySafeArea();
+            HandleDirectTaps();
+        }
+
+        // ------------------------------------------------------------------ direct tap handling
+        // Buttons are also hit-tested here from raw touch/mouse input, so they work even if Unity's EventSystem
+        // never delivers the click on a device. The EventSystem path still works; Raise() ignores a second click
+        // within 0.3 s so a button never fires twice.
+        static GameUI _instance;
+        Button _pressedButton;
+        float _lastFire = -10f;
+
+        public static bool IsPointOverButton(Vector2 screenPos)
+        {
+            return _instance != null && _instance.ButtonAt(screenPos) != null;
+        }
+
+        void Raise(Action handler)
+        {
+            if (Time.unscaledTime - _lastFire < 0.3f) return;
+            _lastFire = Time.unscaledTime;
+            if (handler != null) handler();
+        }
+
+        Button ButtonAt(Vector2 screenPos)
+        {
+            if (_canvas == null) return null;
+            var buttons = _canvas.GetComponentsInChildren<Button>(false);
+            for (int i = buttons.Length - 1; i >= 0; i--)
+            {
+                var b = buttons[i];
+                if (!b.isActiveAndEnabled || !b.interactable) continue;
+                if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)b.transform, screenPos, null)) return b;
+            }
+            return null;
+        }
+
+        void HandleDirectTaps()
+        {
+            Vector2 pos;
+            if (PointerPressed(out pos)) _pressedButton = ButtonAt(pos);
+
+            if (_pressedButton != null && PointerReleased(out pos))
+            {
+                var over = ButtonAt(pos);
+                if (over == _pressedButton) over.onClick.Invoke();
+                _pressedButton = null;
+            }
+        }
+
+        static bool PointerPressed(out Vector2 pos)
+        {
+            pos = default(Vector2);
+            var ts = Touchscreen.current;
+            if (ts != null && ts.primaryTouch.press.wasPressedThisFrame) { pos = ts.primaryTouch.position.ReadValue(); return true; }
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame) { pos = mouse.position.ReadValue(); return true; }
+            return false;
+        }
+
+        static bool PointerReleased(out Vector2 pos)
+        {
+            pos = default(Vector2);
+            var ts = Touchscreen.current;
+            if (ts != null && ts.primaryTouch.press.wasReleasedThisFrame) { pos = ts.primaryTouch.position.ReadValue(); return true; }
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasReleasedThisFrame) { pos = mouse.position.ReadValue(); return true; }
+            return false;
         }
 
         static void EnsureEventSystem()
@@ -123,11 +192,11 @@ namespace Game
             Anchor(sub.rectTransform, 0.5f, 0.64f, new Vector2(1000f, 80f));
 
             _continueBtn = NewButton(rt, "ContinueButton", "Continue", 0.5f, 0.42f, new Vector2(720f, 140f), Green, out _continueLabel);
-            _continueBtn.onClick.AddListener(() => { if (ContinueClicked != null) ContinueClicked(); });
+            _continueBtn.onClick.AddListener(() => Raise(ContinueClicked));
 
             TMP_Text l;
             var nb = NewButton(rt, "NewGameButton", "New Game", 0.5f, 0.31f, new Vector2(720f, 140f), Blue, out l);
-            nb.onClick.AddListener(() => { if (NewGameClicked != null) NewGameClicked(); });
+            nb.onClick.AddListener(() => Raise(NewGameClicked));
         }
 
         void BuildPlace()
@@ -143,7 +212,7 @@ namespace Game
 
             TMP_Text l;
             var b = NewButton(rt, "PlaceInFrontButton", "Place in front of me", 0.5f, 0.13f, new Vector2(720f, 120f), Grey, out l);
-            b.onClick.AddListener(() => { if (PlaceInFrontClicked != null) PlaceInFrontClicked(); });
+            b.onClick.AddListener(() => Raise(PlaceInFrontClicked));
         }
 
         void BuildRoster()
@@ -192,11 +261,11 @@ namespace Game
             // ---- buttons
             TMP_Text l;
             var pick = NewButton(rt, "PickButton", "Pick this fighter", 0.5f, 0.16f, new Vector2(760f, 140f), Green, out l);
-            pick.onClick.AddListener(() => { if (PickClicked != null) PickClicked(); });
+            pick.onClick.AddListener(() => Raise(PickClicked));
             _pickBtn = pick.gameObject;
 
             var back2 = NewButton(rt, "BackButton", "Back to selection", 0.5f, 0.075f, new Vector2(760f, 110f), Grey, out l);
-            back2.onClick.AddListener(() => { if (BackClicked != null) BackClicked(); });
+            back2.onClick.AddListener(() => Raise(BackClicked));
             _backBtn = back2.gameObject;
         }
 
@@ -214,7 +283,7 @@ namespace Game
 
             TMP_Text l;
             var dm = NewButton(rt, "DeathMatchButton", "Death Match", 0.5f, 0.24f, new Vector2(760f, 140f), Green, out l);
-            dm.onClick.AddListener(() => { if (DeathMatchClicked != null) DeathMatchClicked(); });
+            dm.onClick.AddListener(() => Raise(DeathMatchClicked));
 
             var duel = NewButton(rt, "DuelButton", "Duel  (coming soon)", 0.5f, 0.145f, new Vector2(760f, 110f), Grey, out l);
             duel.interactable = false;
@@ -237,7 +306,7 @@ namespace Game
             Stretch(_resultSub.rectTransform);
 
             var b = NewButton(rt, "ResultButton", "Continue", 0.5f, 0.10f, new Vector2(760f, 140f), Blue, out _resultBtnLabel);
-            b.onClick.AddListener(() => { if (ResultContinueClicked != null) ResultContinueClicked(); });
+            b.onClick.AddListener(() => Raise(ResultContinueClicked));
         }
 
         // ------------------------------------------------------------------ screens
