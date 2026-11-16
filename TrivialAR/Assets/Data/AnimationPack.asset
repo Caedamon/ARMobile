@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cc7233ad4a298741b0a48a9d86681ae, type: 3}
+  m_Name: AnimationPack
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.AnimationPack
+  idleOriginal: {fileID: -252589354938087612, guid: aacba81dfc908a2458615989ca24fea3, type: 3}
+  dodgeOriginal: {fileID: -4950055454446286030, guid: e4f28ce0e584ee64d8c9754d7a6a14a3, type: 3}
+  hitOriginal: {fileID: 2825485217256495706, guid: f28725369493a374eaf4392b20b596ea, type: 3}
+  deathOriginal: {fileID: -1923750366902163184, guid: f28725369493a374eaf4392b20b596ea, type: 3}
+  idleUnarmed: {fileID: -252589354938087612, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  idleTwoHand: {fileID: -1623133897597549358, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  hitClips:
+  - {fileID: 2825485217256495706, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  - {fileID: 5929533664354034034, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  deathClips:
+  - {fileID: -1923750366902163184, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  - {fileID: 3311174667178009610, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  dodgeBack: {fileID: 650242174318006946, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
+  dodgeLeft: {fileID: -8338831036711338807, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
+  dodgeRight: {fileID: 2188323905074769703, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
+  pickupClip: {fileID: 4787742288682755051, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  spawnClip: {fileID: 6802492928670190411, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  controllerHasPickup: 1
+  controllerHasSpawn: 1
+  blockClip: {fileID: 5428728673001133709, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  blockHitClip: {fileID: 7887112853433613186, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  controllerHasBlock: 1

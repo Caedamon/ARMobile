@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a48df6886e71c41bbd91ed249edca1, type: 3}
+  m_Name: Club & Spike Shield
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
+  displayName: Club & Spike Shield
+  weaponClass: 4
+  visualPrefab: {fileID: 4994951244829932142, guid: 17ef20d9ef42f85468d9ce3907205c5a, type: 3}
+  offhandVisualPrefab: {fileID: 7401975154479212318, guid: 8cbf93cc05ab03f46b04865ec676d2b0, type: 3}
+  baseDamage: 26
+  damageScalar: 1
+  reach: 0.1
+  attackClips: []
+  moveset: {fileID: 11400000, guid: d390bcf25599a4147aeaab0ad1c9c382, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

@@ -28,30 +28,46 @@ namespace Fighters
             "Oathbreaker", "the Fortunate", "Hammerfist", "the Pale", "Nightwalker", "the Brave"
         };
 
-        public static FighterData Generate(FighterCatalog catalog, FighterSide side, Random rng = null)
+        public static FighterData Generate(FighterCatalog catalog, FighterSide side, Random rng = null, int levelHint = 1)
         {
             rng = rng ?? new Random();
 
             var d = new FighterData();
-            d.tier = RollTier(rng);
+            d.tier = RollTier(rng, levelHint);
             RollStats(d, rng);
             d.luck = (rng.Next(0, 11) + rng.Next(0, 11)) / 2;   // 0-10, bell-shaped
             RollPreferred(d, rng);
+            ProgressionRules.GrantProfLevel(d, ProgressionRules.StyleKey(d.preferredClass), ProgressionRules.StartProfLevel(d.tier));
             d.displayName = FirstNames[rng.Next(FirstNames.Length)] + " " + Epithets[rng.Next(Epithets.Length)];
             d.modelId = PickModel(catalog, side, rng);
             return d;
         }
 
-        static FighterTier RollTier(Random rng)
+        // From level 4 on, better opponents become more common (shift goes 0..1).
+        static float LevelWeight(FighterTier t, int level)
+        {
+            float s = Math.Max(0f, Math.Min(1f, (level - 3) * 0.1f));
+            float w = FighterTiers.Weight(t);
+            switch (t)
+            {
+                case FighterTier.Pathetic:    return w * (1f - s);
+                case FighterTier.Normal:      return w * (1f - 0.5f * s);
+                case FighterTier.HighQuality: return w * (1f + s);
+                case FighterTier.Elite:       return w * (1f + 3f * s);
+                default:                      return w;
+            }
+        }
+
+        static FighterTier RollTier(Random rng, int levelHint)
         {
             var tiers = (FighterTier[])Enum.GetValues(typeof(FighterTier));
             float total = 0f;
-            foreach (var t in tiers) total += FighterTiers.Weight(t);
+            foreach (var t in tiers) total += LevelWeight(t, levelHint);
 
             double r = rng.NextDouble() * total;
             foreach (var t in tiers)
             {
-                r -= FighterTiers.Weight(t);
+                r -= LevelWeight(t, levelHint);
                 if (r <= 0.0) return t;
             }
             return FighterTier.Normal;
@@ -99,12 +115,14 @@ namespace Fighters
             double wOne  = 3.0;
             double wTwo  = 2.0 + d.might / 5.0;
             double wDual = 2.0 + d.insight / 5.0;
+            double wShield = 2.0 + d.ego / 5.0;   // stubborn fighters like a shield
 
-            double r = rng.NextDouble() * (wOne + wTwo + wDual);
+            double r = rng.NextDouble() * (wOne + wTwo + wDual + wShield);
             d.hasPreferredClass = true;
             if ((r -= wOne) <= 0) d.preferredClass = WeaponClass.OneHand;
             else if ((r -= wTwo) <= 0) d.preferredClass = WeaponClass.TwoHand;
-            else d.preferredClass = WeaponClass.DualOneHand;
+            else if ((r -= wDual) <= 0) d.preferredClass = WeaponClass.DualOneHand;
+            else d.preferredClass = WeaponClass.OneHandAndShield;
         }
 
         static string PickModel(FighterCatalog catalog, FighterSide side, Random rng)

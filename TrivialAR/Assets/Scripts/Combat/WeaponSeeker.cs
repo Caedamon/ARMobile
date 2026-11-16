@@ -35,6 +35,9 @@ namespace Combat
         public float rushMultiplier = 2f;
         public float pickupPauseSeconds = 0.5f;
 
+        /// <summary>Optional: per-class weapon preference (set from the fighter's proficiency). Overrides the simple preferred-class bonus.</summary>
+        public System.Func<WeaponClass, float> affinityOverride;
+
         public bool IsSeeking { get; private set; }
         public WeaponItem Target { get; private set; }
 
@@ -78,10 +81,18 @@ namespace Combat
                 if (d > searchRadius) continue;
 
                 float affinity = 1f;
-                if (hasPreferredClass && item.definition != null && item.definition.weaponClass == preferredClass)
+                if (affinityOverride != null)
+                {
+                    if (item.definition != null) affinity = affinityOverride(item.definition.weaponClass);
+                }
+                else if (hasPreferredClass && item.definition != null && item.definition.weaponClass == preferredClass)
+                {
                     affinity = preferredBonus;
+                }
 
-                float score = affinity / (d + 0.02f);
+                // Stronger weapons are worth a longer walk (damage 28 = neutral).
+                float damageFactor = item.definition != null ? Mathf.Sqrt(Mathf.Max(5f, item.definition.baseDamage) / 28f) : 1f;
+                float score = affinity * damageFactor / (d + 0.02f);
 
                 if (enemy != null)
                 {
@@ -126,7 +137,7 @@ namespace Combat
             return _anim != null ? _anim.PlayWalk() : 0.5f;
         }
 
-        float PickUp()
+        public float PickUp()
         {
             var item = Target;
             Target = null;

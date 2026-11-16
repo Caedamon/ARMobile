@@ -62,6 +62,20 @@ MonoBehaviour:
     weight: 1
   - weapon: {fileID: 11400000, guid: 038d20084a8d0654b846630bcf1652d6, type: 2}
     weight: 1
+  - weapon: {fileID: 11400000, guid: a4705dbdf2e478c4a9e792b252ad7b56, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: d2086e78d25a5ab43804fcd6639400db, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: a1f2b3e7554ef0c4a81c1ff4efa598eb, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: 642272075654c1049acc4e05c36cbda2, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: f581acb66a57edc4c95d77a73b7117a9, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: 6add68115e6b7214eb037b91a13eb8bd, type: 2}
+    weight: 0.6
+  - weapon: {fileID: 11400000, guid: 731c81f8c77a80a40ba481bac402f8d9, type: 2}
+    weight: 0.6
   weaponCount: 5
   areaHalfExtents: {x: 0.35, y: 0.3}
   minSpacing: 0.12
@@ -87,6 +101,13 @@ MonoBehaviour:
   showNameplates: 1
   nameplateHeight: 2.3
   nameplateFontSize: 3
+  fighterSeparation: 1.2
+  groundOffset: 0
+  realtimeCombat: 1
+  unarmedMoveset: {fileID: 11400000, guid: b78d02a3a156e12428ea17e6cc65fa75, type: 2}
+  animationPack: {fileID: 11400000, guid: 8360827fba6dcb94da6a2aa07739083f, type: 2}
+  brainDebugLogs: 1
+  debugLogs: 1
 --- !u!1 &2942112487426208176
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,8 +1,17 @@
 using System;
+using System.Collections.Generic;
 using Weaponary;
 
 namespace Fighters
 {
+    /// <summary>XP in one fighting style (Unarmed, OneHand, TwoHand, Dual). See ProgressionRules.</summary>
+    [Serializable]
+    public sealed class ProficiencyEntry
+    {
+        public string style;
+        public int xp;
+    }
+
     /// <summary>
     /// Everything that defines one fighter. Plain serializable class on purpose:
     /// the roster UI, the spawner and the save file (JsonUtility) all use it.
@@ -30,6 +39,9 @@ namespace Fighters
         public int level = 1;
         public int xp;
         public int wins;
+
+        // Weapon proficiency (XP per fighting style). Old saves without this simply start empty.
+        public List<ProficiencyEntry> proficiency = new List<ProficiencyEntry>();
 
         public int VisibleTotal => might + ego + education + insight;
 

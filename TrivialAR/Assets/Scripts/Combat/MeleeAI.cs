@@ -21,6 +21,16 @@ namespace Combat
         public float LastActionDuration { get; private set; } = 0f;
 
         public bool IsDead => _hp != null && _hp.IsDead;
+        
+        // Real-time combat: true when a FighterBrain drives this fighter (BattleManager then skips it).
+        public bool UsesRealtimeBrain
+        {
+            get
+            {
+                if (_brain == null) _brain = GetComponent<FighterBrain>();
+                return _brain != null && _brain.isActiveAndEnabled;
+            }
+        }
 
         // Weapon scramble: true while this unit is spending its rounds going for a weapon.
         public bool IsSeekingWeapon => _seeker != null && _seeker.IsSeeking;
@@ -34,6 +44,7 @@ namespace Combat
         MeleeCombat _combat;
         Health _hp;
         WeaponSeeker _seeker;
+        FighterBrain _brain;
 
         void Awake()
         {
@@ -169,6 +180,7 @@ namespace Combat
         void LateUpdate()
         {
             if (IsDead) return;
+            if (UsesRealtimeBrain) return;   // <-- ADD (otherwise this keeps forcing the idle animation)
             if (Intent == Intent.Idle) _anim.EnsureIdlePlaying();
         }
     }

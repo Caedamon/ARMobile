@@ -46,7 +46,7 @@ namespace Game
         static readonly string[] StatNames = { "MIGHT", "EGO", "EDUCATION", "INSIGHT" };
 
         // hub
-        TMP_Text _hubName, _hubInfo;
+        TMP_Text _hubName, _hubInfo, _hubProf;
 
         // result
         TMP_Text _resultTitle, _resultSub, _resultBtnLabel;
@@ -209,6 +209,8 @@ namespace Game
             Anchor(_hubName.rectTransform, 0.5f, 0.935f, new Vector2(1000f, 100f));
             _hubInfo = NewText(rt, "HubInfo", "", 38f, SoftWhite, TextAlignmentOptions.Center);
             Anchor(_hubInfo.rectTransform, 0.5f, 0.89f, new Vector2(1000f, 70f));
+            _hubProf = NewText(rt, "HubProf", "", 28f, SoftWhite, TextAlignmentOptions.Center);
+            Anchor(_hubProf.rectTransform, 0.5f, 0.845f, new Vector2(1040f, 90f));
 
             TMP_Text l;
             var dm = NewButton(rt, "DeathMatchButton", "Death Match", 0.5f, 0.24f, new Vector2(760f, 140f), Green, out l);
@@ -222,15 +224,19 @@ namespace Game
 
         void BuildResult()
         {
-            _resultPanel = NewPanel("ResultPanel", Dim, true);
+            // No full-screen dimmer: the tombstone / winner stays visible in AR behind the text.
+            _resultPanel = NewPanel("ResultPanel", Color.clear, false);
             var rt = _resultPanel.transform;
 
-            _resultTitle = NewText(rt, "ResultTitle", "", 130f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
-            Anchor(_resultTitle.rectTransform, 0.5f, 0.62f, new Vector2(1000f, 200f));
-            _resultSub = NewText(rt, "ResultSub", "", 46f, SoftWhite, TextAlignmentOptions.Center);
-            Anchor(_resultSub.rectTransform, 0.5f, 0.52f, new Vector2(960f, 160f));
+            _resultTitle = NewText(rt, "ResultTitle", "", 100f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
+            Anchor(_resultTitle.rectTransform, 0.5f, 0.93f, new Vector2(1000f, 160f));
 
-            var b = NewButton(rt, "ResultButton", "Continue", 0.5f, 0.34f, new Vector2(720f, 140f), Blue, out _resultBtnLabel);
+            var strip = NewImage(rt, "ResultStrip", Strip, false);
+            Anchor(strip.rectTransform, 0.5f, 0.815f, new Vector2(1000f, 300f));
+            _resultSub = NewText(strip.transform, "ResultSub", "", 42f, SoftWhite, TextAlignmentOptions.Center);
+            Stretch(_resultSub.rectTransform);
+
+            var b = NewButton(rt, "ResultButton", "Continue", 0.5f, 0.10f, new Vector2(760f, 140f), Blue, out _resultBtnLabel);
             b.onClick.AddListener(() => { if (ResultContinueClicked != null) ResultContinueClicked(); });
         }
 
@@ -272,7 +278,8 @@ namespace Game
             _cardName.color = FighterTiers.Tint(d.tier);
             _cardTier.text = FighterTiers.Label(d.tier) + "   -   Level " + d.level;
             _cardTier.color = FighterTiers.Tint(d.tier);
-            _cardStyle.text = "Prefers:  " + d.PreferredStyleLabel;
+            _cardStyle.text = "Prefers:  " + d.PreferredStyleLabel +
+                (d.hasPreferredClass ? "   (proficiency Lv " + ProgressionRules.ProfLevel(d, ProgressionRules.StyleKey(d.preferredClass)) + ")" : "");
 
             SetStat(0, d.might);
             SetStat(1, d.ego);
@@ -305,7 +312,8 @@ namespace Game
             HideAll();
             _hubName.text = d.displayName;
             _hubName.color = FighterTiers.Tint(d.tier);
-            _hubInfo.text = FighterTiers.Label(d.tier) + "  -  Level " + d.level + "  -  " + d.wins + " win" + (d.wins == 1 ? "" : "s");
+            _hubInfo.text = FighterTiers.Label(d.tier) + "  -  Level " + d.level + "  (XP " + d.xp + " / " + ProgressionRules.XpToNext(d.level) + ")  -  " + d.wins + " win" + (d.wins == 1 ? "" : "s");
+            _hubProf.text = ProgressionRules.ProfLine(d);
             _hubPanel.SetActive(true);
         }
 

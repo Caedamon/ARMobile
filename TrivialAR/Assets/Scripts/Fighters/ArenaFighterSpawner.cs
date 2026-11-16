@@ -19,6 +19,22 @@ namespace Fighters
         public float nameplateHeight = 2.3f;
         public float nameplateFontSize = 3f;
 
+        [Header("Placement")]
+        [Tooltip("Distance between the two fighters at the start (arena-local meters). 0 = use the PlayerSpawn/EnemySpawn markers.")]
+        public float fighterSeparation = 1.2f;
+        [Tooltip("Height of the fighters' feet above the arena floor (arena-local meters). 0 = standing on the surface.")]
+        public float groundOffset = 0f;
+
+        [Header("Combat")]
+        [Tooltip("ON = real-time FighterBrain drives the fighters. OFF = the old round-based BattleManager.")]
+        public bool realtimeCombat = true;
+        public Combat.Moveset unarmedMoveset;
+        public Combat.AnimationPack animationPack;
+        public bool brainDebugLogs = false;
+
+        [Header("Debug")]
+        public bool debugLogs = false;
+
         public FighterIdentity Player { get; private set; }
         public FighterIdentity Enemy { get; private set; }
 
@@ -34,20 +50,47 @@ namespace Fighters
 
             if (FighterSession.PlayerFighter == null)
                 FighterSession.PlayerFighter = FighterGenerator.Generate(catalog, FighterSide.Player);
-            var enemyData = FighterSession.EnemyFighter ?? FighterGenerator.Generate(catalog, FighterSide.Enemy);
             var playerData = FighterSession.PlayerFighter;
+            var enemyData = FighterSession.EnemyFighter;
+            if (enemyData == null)
+            {
+                // Keep pace with the player: level band from ProgressionRules, and better tiers get more common as the player levels.
+                var rng = new System.Random();
+                enemyData = FighterGenerator.Generate(catalog, FighterSide.Enemy, rng, playerData.level);
+                ProgressionRules.ScaleToLevel(enemyData, ProgressionRules.RollEnemyLevel(playerData.level, rng), rng);
+            }
 
             Player = SpawnOne(playerData, FighterSide.Player, playerSpawn, enemySpawn);
             Enemy  = SpawnOne(enemyData,  FighterSide.Enemy,  enemySpawn,  playerSpawn);
 
-            Debug.Log("[Fighters] PLAYER: " + playerData.Summary());
-            Debug.Log("[Fighters] ENEMY:  " + enemyData.Summary());
+            if (debugLogs)
+            {
+                Debug.Log("[Fighters] PLAYER: " + playerData.Summary());
+                Debug.Log("[Fighters] ENEMY:  " + enemyData.Summary());
+            }
 
             // Make sure combat and the HUD see the new fighters.
             var bm = FindFirstObjectByType<Combat.BattleManager>();
             if (bm != null) bm.DiscoverUnits();
             var ui = FindFirstObjectByType<global::UI.BattleUIManager>();
             if (ui != null) ui.Rebind();
+        }
+
+        // Arena-local spawn position for a side. Feet always at groundOffset (not the markers' height).
+        Vector3 SpawnLocal(FighterSide side, Transform marker)
+        {
+            if (fighterSeparation > 0f)
+            {
+                float half = fighterSeparation * 0.5f;
+                return new Vector3(0f, groundOffset, side == FighterSide.Player ? -half : half);
+            }
+            if (marker != null)
+            {
+                Vector3 l = transform.InverseTransformPoint(marker.position);
+                l.y = groundOffset;
+                return l;
+            }
+            return new Vector3(0f, groundOffset, side == FighterSide.Player ? -0.5f : 0.5f);
         }
 
         FighterIdentity SpawnOne(FighterData d, FighterSide side, Transform at, Transform opponentSpawn)
@@ -60,9 +103,8 @@ namespace Fighters
                 return null;
             }
 
-            float z = side == FighterSide.Player ? -0.5f : 0.5f;
-            Vector3 pos = at != null ? at.position : transform.TransformPoint(new Vector3(0f, 0.05f, z));
-            Vector3 other = opponentSpawn != null ? opponentSpawn.position : transform.TransformPoint(new Vector3(0f, 0.05f, -z));
+            Vector3 pos = transform.TransformPoint(SpawnLocal(side, at));
+            Vector3 other = transform.TransformPoint(SpawnLocal(side == FighterSide.Player ? FighterSide.Enemy : FighterSide.Player, opponentSpawn));
 
             Vector3 dir = other - pos;
             dir.y = 0f;
@@ -72,7 +114,23 @@ namespace Fighters
 
             var identity = go.GetComponent<FighterIdentity>();
             if (identity == null) identity = go.AddComponent<FighterIdentity>();
-            identity.Apply(d);
+            identity.Apply(d, debugLogs);
+
+            if (realtimeCombat)
+            {
+                if (animationPack != null)
+                {
+                    var anim = go.GetComponent<Combat.FighterAnimation>();
+                    if (anim == null) anim = go.AddComponent<Combat.FighterAnimation>();
+                    anim.pack = animationPack;
+                    anim.debugLogs = brainDebugLogs;
+                }
+
+                var brain = go.GetComponent<Combat.FighterBrain>();
+                if (brain == null) brain = go.AddComponent<Combat.FighterBrain>();
+                brain.unarmedMoveset = unarmedMoveset;
+                brain.debugLogs = brainDebugLogs;
+            }
 
             if (showNameplates)
             {

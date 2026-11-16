@@ -32,7 +32,7 @@ namespace Combat
             _units.Clear();
             // Skip disabled units (roster display fighters have their AI switched off).
             foreach (var u in FindObjectsByType<MeleeAI>(FindObjectsSortMode.None))
-                if (u != null && u.isActiveAndEnabled) _units.Add(u);
+                if (u != null && u.isActiveAndEnabled && !u.UsesRealtimeBrain) _units.Add(u);
             if (log) Debug.Log($"[Battle] DiscoverUnits → {_units.Count}");
         }
 

@@ -1,0 +1,164 @@
+using UnityEngine;
+using Weaponary;
+
+namespace Combat
+{
+    /// <summary>
+    /// Swaps in the right clips for the situation (via the fighter's AnimatorOverrideController):
+    /// combat stance by weapon class, directional dodge, hit/death variants, plus pickup and spawn.
+    /// Added at runtime by ArenaFighterSpawner next to the FighterBrain.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class FighterAnimation : MonoBehaviour
+    {
+        public enum DodgeDir { Back, Left, Right }
+
+        public AnimationPack pack;
+        public bool debugLogs = false;
+        public string pickupTrigger = "Pickup";
+        public string spawnTrigger = "Spawn";
+        public string blockTrigger = "BlockStart";
+
+        Animator _animator;
+        AnimatorOverrideController _aoc;
+        WeaponHolder _holder;
+        bool _ready;
+        bool _hasPickup, _hasSpawn, _hasBlock;
+        int _stance = -1;
+        int _lastHit = -1, _lastDeath = -1;
+
+        /// <summary>True if dodges use left/right/back clips (the fighter should keep facing its attacker).</summary>
+        public bool HasDirectionalDodge
+        {
+            get
+            {
+                return pack != null && pack.dodgeOriginal != null &&
+                       (pack.dodgeBack != null || pack.dodgeLeft != null || pack.dodgeRight != null);
+            }
+        }
+
+        void Awake()
+        {
+            _animator = GetComponent<Animator>();
+            _holder = GetComponent<WeaponHolder>();
+        }
+
+        void Update()
+        {
+            if (!EnsureReady()) return;
+            int s = StanceFor();
+            if (s == _stance) return;
+            _stance = s;
+            AnimationClip clip = s == 1 ? pack.idleUnarmed : (s == 2 ? pack.idleTwoHand : null);
+            SetOverride(pack.idleOriginal, clip);   // null = back to the default idle
+            Log("stance " + s);
+        }
+
+        // 0 = default idle (one-handed / dual wield), 1 = unarmed, 2 = two-handed
+        int StanceFor()
+        {
+            var cur = _holder != null ? _holder.Current : null;
+            if (cur == null) return 1;
+            return cur.weaponClass == WeaponClass.TwoHand ? 2 : 0;
+        }
+
+        public float PlaySpawn()
+        {
+            if (!EnsureReady() || !_hasSpawn || pack.spawnClip == null) return 0f;
+            _animator.SetTrigger(spawnTrigger);
+            return pack.spawnClip.length;
+        }
+
+        public float PlayPickup()
+        {
+            if (!EnsureReady() || !_hasPickup || pack.pickupClip == null) return 0f;
+            _animator.SetTrigger(pickupTrigger);
+            return pack.pickupClip.length;
+        }
+
+        public float PlayBlock()
+        {
+            if (!EnsureReady() || !_hasBlock || pack.blockClip == null) return 0f;
+            _animator.SetTrigger(blockTrigger);
+            return pack.blockClip.length;
+        }
+
+        /// <summary>The next hit reaction plays the 'blocked a hit' clip.</summary>
+        public void PrepareBlockHit()
+        {
+            if (!EnsureReady() || pack.hitOriginal == null || pack.blockHitClip == null) return;
+            SetOverride(pack.hitOriginal, pack.blockHitClip);
+        }
+
+        public void PrepareDodge(DodgeDir dir)
+        {
+            if (!EnsureReady() || pack.dodgeOriginal == null) return;
+            AnimationClip c = dir == DodgeDir.Back ? pack.dodgeBack : (dir == DodgeDir.Left ? pack.dodgeLeft : pack.dodgeRight);
+            if (c != null) SetOverride(pack.dodgeOriginal, c);
+        }
+
+        public void PrepareHit()
+        {
+            if (!EnsureReady() || pack.hitOriginal == null) return;
+            var c = Pick(pack.hitClips, ref _lastHit);
+            if (c != null) SetOverride(pack.hitOriginal, c);
+        }
+
+        public void PrepareDeath()
+        {
+            if (!EnsureReady() || pack.deathOriginal == null) return;
+            var c = Pick(pack.deathClips, ref _lastDeath);
+            if (c != null) SetOverride(pack.deathOriginal, c);
+        }
+
+        // ------------------------------------------------------------------ internals
+        bool EnsureReady()
+        {
+            if (_ready) return true;
+            if (pack == null || _animator == null) return false;
+
+            var rac = _animator.runtimeAnimatorController;
+            if (rac == null) return false;
+
+            _aoc = rac as AnimatorOverrideController;
+            if (_aoc == null)
+            {
+                _aoc = new AnimatorOverrideController(rac);
+                _animator.runtimeAnimatorController = _aoc;
+            }
+
+            _hasPickup = pack.controllerHasPickup && HasParam(pickupTrigger);
+            _hasSpawn = pack.controllerHasSpawn && HasParam(spawnTrigger);
+            _hasBlock = pack.controllerHasBlock && HasParam(blockTrigger);
+            _ready = true;
+            Log("ready (pickup state: " + _hasPickup + ", spawn state: " + _hasSpawn + ")");
+            return true;
+        }
+
+        bool HasParam(string paramName)
+        {
+            foreach (var p in _animator.parameters)
+                if (p.name == paramName) return true;
+            return false;
+        }
+
+        void SetOverride(AnimationClip original, AnimationClip clip)
+        {
+            if (_aoc != null && original != null) _aoc[original] = clip;
+        }
+
+        static AnimationClip Pick(System.Collections.Generic.List<AnimationClip> list, ref int last)
+        {
+            if (list == null || list.Count == 0) return null;
+            int n = list.Count;
+            int i = (n == 1 || last < 0) ? Random.Range(0, n) : (last + Random.Range(1, n)) % n;
+            last = i;
+            return list[i];
+        }
+
+        void Log(string message)
+        {
+            if (debugLogs) Debug.Log("[FighterAnim] " + name + ": " + message, this);
+        }
+    }
+}

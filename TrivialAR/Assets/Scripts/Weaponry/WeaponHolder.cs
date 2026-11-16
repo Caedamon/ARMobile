@@ -21,6 +21,14 @@ namespace Weaponary
 
         public WeaponDefinition Current { get; private set; }
         public bool IsArmed => Current != null;
+        public bool HasShield
+        {
+            get
+            {
+                return Current != null &&
+                       (Current.weaponClass == WeaponClass.OneHandAndShield || Current.weaponClass == WeaponClass.ShieldOnly);
+            }
+        }
         public float LastAttackDuration { get; private set; }
 
         Animator _animator;
@@ -50,6 +58,7 @@ namespace Weaponary
             if (def.visualPrefab != null && right != null)
             {
                 _rightVisual = Attach(def.visualPrefab, right);
+                _rightVisual.transform.localPosition = CreatorOffset(def.visualPrefab);
 
                 var wd = _rightVisual.GetComponent<WeaponDamage>();
                 if (wd == null) wd = _rightVisual.AddComponent<WeaponDamage>();
@@ -57,10 +66,18 @@ namespace Weaponary
                 wd.weaponScalar = def.damageScalar;
             }
 
-            if (def.weaponClass == WeaponClass.DualOneHand && def.offhandVisualPrefab != null)
+            bool usesOffhand = def.weaponClass == WeaponClass.DualOneHand ||
+                               def.weaponClass == WeaponClass.OneHandAndShield ||
+                               def.weaponClass == WeaponClass.ShieldOnly;
+            if (usesOffhand && def.offhandVisualPrefab != null)
             {
                 var left = FindSocket(HumanBodyBones.LeftHand, leftSocketName);
-                if (left != null) _leftVisual = Attach(def.offhandVisualPrefab, left);
+                if (left != null)
+                {
+                    _leftVisual = Attach(def.offhandVisualPrefab, left);
+                    _leftVisual.transform.localRotation = Quaternion.Euler(def.offhandEuler);
+                    _leftVisual.transform.localPosition = CreatorOffset(def.offhandVisualPrefab) + def.offhandOffset;
+                }
             }
 
             if (_motor != null) _motor.attackRange = def.reach;
@@ -95,8 +112,42 @@ namespace Weaponary
             LastAttackDuration = Mathf.Max(0.35f, clip.length);
             return true;
         }
+        
+        /// <summary>Real-time combat: force a specific clip for the next attack. True if it was applied.</summary>
+        public bool PrepareAttackClip(AnimationClip clip)
+        {
+            if (clip == null || !EnsureOverride()) return false;
+            _aoc[_originalAttack] = clip;
+            LastAttackDuration = Mathf.Max(0.35f, clip.length);
+            return true;
+        }
 
         // ---------- internals ----------
+
+        // Where the KayKit creator placed each item in the hand slot (read from the characters' own FBX files).
+        // None of them are rotated; shields sit 0.156 "outwards" from the hand. Unknown items stay at the slot origin.
+        // Your WeaponDefinition's offhandOffset is added on top for fine tuning.
+        static readonly Dictionary<string, Vector3> CreatorOffsets = new Dictionary<string, Vector3>
+        {
+            { "1H_Sword",         new Vector3(0f, 0.033f, 0f) },
+            { "1H_Axe",           new Vector3(0f, 0.033f, 0f) },
+            { "2H_Sword",         new Vector3(0f, 0.033f, 0f) },
+            { "2H_Axe",           new Vector3(0f, 0.033f, 0f) },
+            { "Orc_Axe",          new Vector3(0f, 0.033f, 0f) },
+            { "1H_Sword_Offhand", new Vector3(0f, 0.017f, 0f) },
+            { "1H_Axe_Offhand",   new Vector3(0f, 0.033f, 0f) },
+            { "Orc_Club",         new Vector3(0f, 0.017f, 0f) },
+        };
+        static readonly Vector3 ShieldOffset = new Vector3(0f, 0.017f, 0.156f);
+
+        static Vector3 CreatorOffset(GameObject prefab)
+        {
+            if (prefab == null) return Vector3.zero;
+            Vector3 v;
+            if (CreatorOffsets.TryGetValue(prefab.name, out v)) return v;
+            if (prefab.name.ToLowerInvariant().Contains("shield")) return ShieldOffset;   // all five KayKit shields share this
+            return Vector3.zero;
+        }
 
         GameObject Attach(GameObject prefab, Transform socket)
         {

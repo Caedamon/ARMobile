@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6756226881740494d8e072c05bce67c6, type: 3}
+  m_Name: OneHand
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.Moveset
+  displayName: OneHand
+  attacks:
+  - label: 1H Chop!
+    clip: {fileID: 4043807988371827432, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    speed: 1
+    hitAt: 0.5
+    endAt: 0.92
+    damageMul: 1.15
+    reachMul: 1
+    lungeModelMeters: 0.25
+    knockbackModelMeters: 0.4
+    stagger: 1.2
+    weight: 1
+  - label: 1H Slice Diagonal!
+    clip: {fileID: 5034251128425565466, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    speed: 1
+    hitAt: 0.45
+    endAt: 0.92
+    damageMul: 1
+    reachMul: 1
+    lungeModelMeters: 0.25
+    knockbackModelMeters: 0.35
+    stagger: 1
+    weight: 1
+  - label: 1H Slice Horizontal!
+    clip: {fileID: -8653722278162725603, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    speed: 1
+    hitAt: 0.45
+    endAt: 0.92
+    damageMul: 1
+    reachMul: 1
+    lungeModelMeters: 0.25
+    knockbackModelMeters: 0.35
+    stagger: 1
+    weight: 1
+  - label: 1H Stab!
+    clip: {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    speed: 1
+    hitAt: 0.4
+    endAt: 0.92
+    damageMul: 1
+    reachMul: 1
+    lungeModelMeters: 0.4
+    knockbackModelMeters: 0.25
+    stagger: 1
+    weight: 1
+  cooldownRange: {x: 0.3, y: 0.6}

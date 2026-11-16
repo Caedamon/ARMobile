@@ -21,6 +21,13 @@ namespace Game
         public GameObject arenaPrefab;
         public List<WeaponDefinition> showcaseWeapons = new List<WeaponDefinition>();
 
+        public enum DebugOutcome { None, ForceVictory, ForceDefeat }
+
+        [Header("Debug")]
+        public bool debugLogs = false;
+        [Tooltip("Testing: end every fight after ~4 seconds with this result (e.g. to see the tombstone).")]
+        public DebugOutcome debugOutcome = DebugOutcome.None;
+
         [Header("Tuning")]
         public string gameTitle = "ARENA";
         public int rosterSize = 3;
@@ -41,7 +48,11 @@ namespace Game
 
         ArenaFighterSpawner _arena;
         bool _fightEnding;
-        bool _lastResultWon;
+        float _fightStarted;
+        bool _resultToHub;
+        FighterData _lastEnemy;
+        int[] _profBefore;
+        readonly System.Random _rng = new System.Random();
 
         // ------------------------------------------------------------------ setup
         void Awake()
@@ -225,7 +236,7 @@ namespace Game
             _save.fighter = chosen;
             SaveSystem.Save(_save);
 
-            Debug.Log("[Game] Picked: " + chosen.Summary());
+            if (debugLogs) Debug.Log("[Game] Picked: " + chosen.Summary());
             EnterHub();
         }
 
@@ -255,6 +266,8 @@ namespace Game
         {
             _state = GameState.Fight;
             _fightEnding = false;
+            _fightStarted = Time.time;
+            _profBefore = ProgressionRules.ProfSnapshot(FighterSession.PlayerFighter);
             _roster = null;
             _ui.HideAll();
 
@@ -269,11 +282,20 @@ namespace Game
                 EnterHub();
                 return;
             }
+
+            _lastEnemy = _arena.Enemy.Data;
         }
 
         void MonitorFight()
         {
             if (_fightEnding || _arena == null) return;
+
+            if (debugOutcome != DebugOutcome.None && Time.time - _fightStarted > 4f)
+            {
+                _fightEnding = true;
+                StartCoroutine(EndFight(debugOutcome == DebugOutcome.ForceVictory));
+                return;
+            }
             if (_arena.Player == null || _arena.Enemy == null) return;
 
             var playerHp = _arena.Player.GetComponent<Health>();
@@ -299,7 +321,6 @@ namespace Game
         void EnterResult(bool playerWon)
         {
             _state = GameState.Result;
-            _lastResultWon = playerWon;
             SetHud(false);
 
             var fighter = FighterSession.PlayerFighter;
@@ -309,31 +330,73 @@ namespace Game
             {
                 fighter.wins++;
                 _save.totalWins++;
+
+                int xp = ProgressionRules.XpReward(fighter, _lastEnemy != null ? _lastEnemy : fighter);
+                var up = ProgressionRules.AddXp(fighter, xp, _rng);
+
                 _save.hasFighter = true;
                 _save.fighter = fighter;
                 SaveSystem.Save(_save);
 
-                _ui.ShowResult("VICTORY", new Color(1f, 0.82f, 0.25f),
-                               fighter.displayName + " wins!\nFights won: " + fighter.wins, "Continue");
+                ShowFighterStage(fighter);
+                _resultToHub = true;
+                _ui.ShowResult("VICTORY", new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore), "Continue");
+            }
+            else if (Random.value < ProgressionRules.DefeatSurvivalChance)
+            {
+                ShowFighterStage(fighter);
+                _resultToHub = true;
+                _ui.ShowResult("DEFEATED", new Color(1f, 0.6f, 0.25f),
+                               fighter.displayName + " was left for dead...\nbut survived!", "Continue");
             }
             else
             {
-                // Permadeath: the fighter is gone.
-                string name = fighter != null ? fighter.displayName : "Your fighter";
+                // Permadeath: the fighter is gone, and gets a tombstone.
+                var fallen = fighter;
                 FighterSession.PlayerFighter = null;
                 _save.hasFighter = false;
                 _save.fighter = new FighterData();
                 SaveSystem.Save(_save);
 
-                _ui.ShowResult("DEFEATED", new Color(0.92f, 0.30f, 0.30f),
-                               name + " has fallen.", "Choose a new fighter");
+                var stage = _placer.CreateStage("TombstoneStage");
+                if (stage != null) stage.AddComponent<TombstoneStage>().Build(fallen);
+
+                _resultToHub = false;
+                _ui.ShowResult("FALLEN", new Color(0.92f, 0.30f, 0.30f),
+                               fallen.displayName + " has fallen.\nLevel " + fallen.level + "  -  " + fallen.wins + " win" + (fallen.wins == 1 ? "" : "s"),
+                               "Choose a new fighter");
             }
+        }
+
+        // The winner standing on the table (re-uses the hub display).
+        void ShowFighterStage(FighterData fighter)
+        {
+            var stage = _placer.CreateStage("ResultStage");
+            if (stage == null) return;
+            _roster = stage.AddComponent<RosterStage>();
+            _roster.Init(catalog, showcaseWeapons);
+            _roster.ShowSingle(fighter);
+        }
+
+        static string BuildVictoryText(FighterData f, LevelUpResult up, int[] profBefore)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(f.displayName).Append(" wins!");
+            sb.Append("\n+").Append(up.xpGained).Append(" XP   (").Append(f.xp).Append(" / ").Append(ProgressionRules.XpToNext(f.level)).Append(")");
+            if (up.levelsGained > 0)
+            {
+                sb.Append("\nLEVEL UP!  Lv ").Append(f.level);
+                foreach (var s in up.statGains) sb.Append("   ").Append(s);
+            }
+            string prof = ProgressionRules.ProfDiffText(profBefore, f);
+            if (!string.IsNullOrEmpty(prof)) sb.Append("\n").Append(prof);
+            return sb.ToString();
         }
 
         void OnResultContinue()
         {
             if (_state != GameState.Result) return;
-            if (_lastResultWon) EnterHub();
+            if (_resultToHub) EnterHub();
             else EnterRoster();
         }
     }

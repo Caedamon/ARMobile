@@ -13,7 +13,7 @@ namespace Fighters
         Transform _head;
         float _fallbackHeight;
 
-        public void Init(Transform root, Transform headBone)
+        public void Init(Transform root, Transform headBone, bool debugLogs = false)
         {
             _root = root;
             _head = headBone;
@@ -31,7 +31,7 @@ namespace Fighters
             }
 
             Place();
-            LogReport();
+            if (debugLogs) LogReport();
         }
 
         void LateUpdate() { Place(); }

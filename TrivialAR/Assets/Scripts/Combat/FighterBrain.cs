@@ -1,0 +1,722 @@
+using Characters;
+using Core;
+using Fighters;
+using UnityEngine;
+using Weaponary;
+
+namespace Combat
+{
+    /// <summary>
+    /// Real-time fighter AI. Every fighter runs its own state machine every frame (no shared rounds):
+    /// Spawn -> SeekWeapon/Pickup -> Approach -> Engage -> Attack (wind-up, strike, recovery) -> Hit / Dodge -> Dead.
+    /// Damage lands at the strike frame of the animation, not when the swing starts.
+    /// Switched on per arena with ArenaFighterSpawner.realtimeCombat; the old round-based system is untouched.
+    /// </summary>
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(MeleeAI))]
+    [RequireComponent(typeof(MeleeAnimator))]
+    [RequireComponent(typeof(MeleeMotor))]
+    [RequireComponent(typeof(Health))]
+    public sealed class FighterBrain : MonoBehaviour
+    {
+        enum State { Spawn, SeekWeapon, Pickup, Approach, Engage, Attack, Hit, Dodge, Block, Dead }
+
+        [Header("Debug")]
+        public bool debugLogs = false;
+
+        [Header("Moves")]
+        [Tooltip("Used when no weapon is equipped.")]
+        public Moveset unarmedMoveset;
+        [Tooltip("Name of the Animator state the attack clips play in.")]
+        public string attackStateName = "Attack_Light";
+
+        [Header("Locomotion (model meters per second; scaled by the fighter's size)")]
+        public float walkModelMps = 2.4f;
+        public float runModelMps = 3.4f;
+        [Tooltip("Speed the walk clip looks right at. Playback is sped up/slowed down to match, so feet don't slide.")]
+        public float walkClipModelMps = 1.6f;
+        public float turnDegPerSecond = 600f;
+
+        [Header("Reach (fractions of the fighter's own body height, so medium and large scale automatically)")]
+        [Tooltip("Half the body width, as a fraction of height. Two fighters' radii add up to their minimum gap.")]
+        public float bodyRadiusFactor = 0.20f;
+        public float unarmedReachFactor = 0.25f;
+        public float oneHandReachFactor = 0.45f;
+        public float twoHandReachFactor = 0.60f;
+        public float dualReachFactor = 0.40f;
+        [Tooltip("How close to a weapon pickup before grabbing it.")]
+        public float pickupReachFactor = 0.30f;
+
+        [Header("Hit resolution")]
+        public float hitConeDegrees = 80f;
+        [Tooltip("Extra forgiveness on the hit check, as a fraction of body height.")]
+        public float reachSlackFactor = 0.12f;
+        public float hitStopSeconds = 0.05f;
+
+        [Header("Reactions")]
+        public float hitStunSeconds = 0.35f;
+        public float knockbackSeconds = 0.18f;
+        public float baseDodgeChance = 0.08f;
+        public float dodgePerInsight = 0.025f;
+        public float dodgeCooldown = 1.6f;
+        public float dodgeSeconds = 0.55f;
+        public float dodgeInvulnSeconds = 0.45f;
+        public float dodgeModelMeters = 1.4f;
+        [Tooltip("Chance per EGO point to shrug off a flinch while attacking.")]
+        public float egoPoisePerPoint = 0.04f;
+        [Tooltip("Attack speed bonus per INSIGHT point above 5.")]
+        public float attackSpeedPerInsight = 0.02f;
+
+        [Header("Shield")]
+        [Tooltip("Base chance to raise the shield against an incoming attack.")]
+        public float baseBlockChance = 0.30f;
+        public float blockPerInsight = 0.03f;
+        public float blockCooldown = 1.0f;
+        [Tooltip("Damage taken while blocking (0.25 = a quarter).")]
+        public float blockDamageFactor = 0.25f;
+        [Tooltip("Damage reduction just for carrying a shield.")]
+        public float shieldPassiveReduction = 0.10f;
+
+        [Header("Pacing")]
+        public float startDelayMax = 0.6f;
+        public float retargetInterval = 0.35f;
+
+        /// <summary>Measured at start: the fighter's height in world meters.</summary>
+        public float BodyHeight { get { return _height; } }
+
+        /// <summary>True while a dodge's invulnerability window is open.</summary>
+        public bool IsBlocking { get { return _state == State.Block; } }
+
+        public bool IsInvulnerable { get { return _state == State.Dodge && _stateTime < dodgeInvulnSeconds; } }
+
+        static readonly AttackMove FallbackMove = new AttackMove();
+
+        MeleeAI _ai;
+        MeleeAnimator _ma;
+        MeleeMotor _motor;
+        MeleeCombat _meleeCombat;
+        Health _hp;
+        Animator _animator;
+        WeaponHolder _holder;
+        WeaponSeeker _seeker;
+        PersonalSpace _space;
+        FighterAnimation _fa;
+        FighterIdentity _identity;
+        CharacterStats _stats;
+
+        State _state;
+        float _stateTime;
+        float _cooldown;
+        float _spawnDelay;
+        float _retargetTimer;
+        float _nextSeekPlan;
+        float _nextDodgeAt;
+        float _nextBlockAt;
+        float _blockSeconds;
+        Vector3 _blockFrom;
+        float _hitStopUntil;
+        float _pickupPause;
+        float _stunSeconds;
+        float _height = 0.09f;
+
+        MeleeAI _target;
+        FighterBrain _targetBrain;
+
+        // locomotion
+        bool _wantMove;
+        float _moveModelMps;
+        float _speed01;
+        float _animSpeedTarget = 1f;
+
+        // attack
+        AttackMove _move;
+        AttackMove _lastMove;
+        float _attackStart;
+        bool _attackSeen;
+        bool _hitDone;
+        float _lungeApplied;
+
+        // dodge / knockback
+        Vector3 _dodgeDir;
+        Vector3 _dodgeFromPos;
+        float _dodgeDistance;
+        float _dodgeMoved;
+        Vector3 _kbDir;
+        float _kbRemaining;
+        float _kbRate;
+
+        // ------------------------------------------------------------------ lifecycle
+        void Awake()
+        {
+            _ai = GetComponent<MeleeAI>();
+            _ma = GetComponent<MeleeAnimator>();
+            _motor = GetComponent<MeleeMotor>();
+            _meleeCombat = GetComponent<MeleeCombat>();
+            _hp = GetComponent<Health>();
+            _animator = GetComponent<Animator>();
+            _holder = GetComponent<WeaponHolder>();
+            _seeker = GetComponent<WeaponSeeker>();
+            _space = GetComponent<PersonalSpace>();
+            _fa = GetComponent<FighterAnimation>();
+        }
+
+        void Start()
+        {
+            _height = MeasureHeight();
+            Log("body height " + _height.ToString("0.000") + " m, stop distance (unarmed, vs same size) " + (bodyRadiusFactor * 2f * _height + unarmedReachFactor * _height).ToString("0.000") + " m");
+            _ma.SetSpeed(0f);
+            _spawnDelay = Random.Range(0.15f, Mathf.Max(0.2f, startDelayMax));
+            if (_fa != null) _spawnDelay = Mathf.Max(_spawnDelay, _fa.PlaySpawn());   // wait for the arrival animation
+            _cooldown = Random.Range(0.1f, 0.4f);
+            EnterState(State.Spawn);
+        }
+
+        void OnDisable()
+        {
+            if (_animator != null) _animator.speed = 1f;
+        }
+
+        void Update()
+        {
+            if (_state == State.Dead) return;
+            if (_hp.IsDead) { EnterDead(); return; }
+
+            float dt = Time.deltaTime;
+            _stateTime += dt;
+
+            if (Time.time < _hitStopUntil) { _animator.speed = 0f; return; }   // impact freeze
+
+            _wantMove = false;
+            _animSpeedTarget = 1f;
+            TickTarget(dt);
+
+            switch (_state)
+            {
+                case State.Spawn:      TickSpawn(); break;
+                case State.SeekWeapon: TickSeek(dt); break;
+                case State.Pickup:     TickPickup(); break;
+                case State.Approach:   TickApproach(dt); break;
+                case State.Engage:     TickEngage(dt); break;
+                case State.Attack:     TickAttack(dt); break;
+                case State.Hit:        TickHit(); break;
+                case State.Dodge:      TickDodge(dt); break;
+                case State.Block:      TickBlock(dt); break;
+            }
+
+            ApplyKnockback(dt);
+            ApplyLocomotionAnim(dt);
+        }
+
+        void EnterState(State s)
+        {
+            _state = s;
+            _stateTime = 0f;
+            Log("state -> " + s);
+        }
+
+        // ------------------------------------------------------------------ targeting
+        void TickTarget(float dt)
+        {
+            _retargetTimer -= dt;
+            bool bad = _target == null || !_target.isActiveAndEnabled || _target.IsDead;
+            if (!bad && _retargetTimer > 0f) return;
+            if (_state == State.Attack && !bad) return;   // finish the swing on the same enemy
+
+            _retargetTimer = retargetInterval;
+            var best = FindNearestEnemy();
+            if (best != _target)
+            {
+                _target = best;
+                _targetBrain = best != null ? best.GetComponent<FighterBrain>() : null;
+            }
+        }
+
+        MeleeAI FindNearestEnemy()
+        {
+            MeleeAI best = null;
+            float bestSqr = float.MaxValue;
+            foreach (var u in FindObjectsByType<MeleeAI>(FindObjectsSortMode.None))
+            {
+                if (u == null || u == _ai || !u.isActiveAndEnabled || u.IsDead || u.team == _ai.team) continue;
+                float sq = (u.transform.position - transform.position).sqrMagnitude;
+                if (sq < bestSqr) { bestSqr = sq; best = u; }
+            }
+            return best;
+        }
+
+        // ------------------------------------------------------------------ states
+        void TickSpawn()
+        {
+            if (_stateTime >= _spawnDelay) EnterState(State.Approach);
+        }
+
+        void TickApproach(float dt)
+        {
+            if (TryStartSeeking()) return;
+            if (_target == null) return;
+
+            float stop = StopDist();
+            if (FlatDist(_target.transform.position) <= stop + 0.003f) { EnterState(State.Engage); return; }
+            MoveToward(_target.transform.position, stop, walkModelMps, dt);
+        }
+
+        void TickEngage(float dt)
+        {
+            if (_target == null) return;
+            if (TryStartSeeking()) return;
+
+            Vector3 to = _target.transform.position - transform.position;
+            to.y = 0f;
+            FaceDirection(to, dt);
+
+            if (to.magnitude > StopDist() + 0.02f) { EnterState(State.Approach); return; }
+
+            _cooldown -= dt;
+            if (_cooldown <= 0f) StartAttack();
+        }
+
+        bool TryStartSeeking()
+        {
+            if (_seeker == null || _holder == null || _holder.IsArmed) return false;
+            if (Time.time < _nextSeekPlan) return false;
+            _nextSeekPlan = Time.time + 0.25f;
+            if (!_seeker.PlanSeek()) return false;
+            EnterState(State.SeekWeapon);
+            return true;
+        }
+
+        void TickSeek(float dt)
+        {
+            if (_holder != null && _holder.IsArmed) { EnterState(State.Approach); return; }
+
+            if (Time.time >= _nextSeekPlan)
+            {
+                _nextSeekPlan = Time.time + 0.25f;
+                if (!_seeker.PlanSeek()) { EnterState(State.Approach); return; }
+            }
+
+            var item = _seeker.Target;
+            if (item == null) { EnterState(State.Approach); return; }
+
+            float reach = Mathf.Max(0.02f, pickupReachFactor * _height);
+            Vector3 pos = item.transform.position;
+
+            if (FlatDist(pos) <= reach)
+            {
+                _pickupPause = _seeker.PickUp();
+                if (_fa != null) _pickupPause = Mathf.Max(_pickupPause, _fa.PlayPickup());
+                EnterState(State.Pickup);
+                return;
+            }
+            MoveToward(pos, reach * 0.5f, runModelMps, dt);
+        }
+
+        void TickPickup()
+        {
+            if (_stateTime >= _pickupPause) EnterState(State.Approach);
+        }
+
+        // ------------------------------------------------------------------ attacking
+        Moveset CurrentMoveset()
+        {
+            if (_holder != null && _holder.Current != null && _holder.Current.moveset != null)
+                return _holder.Current.moveset;
+            return unarmedMoveset;
+        }
+
+        float AttackSpeed()
+        {
+            return Mathf.Max(0.3f, _move.speed * (1f + attackSpeedPerInsight * (Insight() - 5f)));
+        }
+
+        void StartAttack()
+        {
+            var set = CurrentMoveset();
+            _move = set != null ? set.Pick(_lastMove) : null;
+            if (_move == null) _move = FallbackMove;
+            _lastMove = _move;
+
+            if (_move.clip != null && _holder != null) _holder.PrepareAttackClip(_move.clip);
+
+            _animator.SetBool(_ma.heavyBool, false);
+            _animator.ResetTrigger(_ma.attackTrigger);
+            _animator.SetTrigger(_ma.attackTrigger);
+            _speed01 = 0f;
+            _ma.SetSpeed(0f);
+
+            _attackStart = Time.time;
+            _attackSeen = false;
+            _hitDone = false;
+            _lungeApplied = 0f;
+
+            BattleEvents.AnnounceAction(_ai, _move.label);
+
+            // Give the defender a chance to react before the strike lands.
+            float len = _move.clip != null ? _move.clip.length : 0.7f;
+            float hitDelay = len * _move.hitAt / AttackSpeed();
+            if (_targetBrain != null) _targetBrain.OnIncomingAttack(this, hitDelay);
+
+            EnterState(State.Attack);
+            Log("attack '" + _move.label + "' hit in " + hitDelay.ToString("0.00") + "s");
+        }
+
+        void TickAttack(float dt)
+        {
+            _animSpeedTarget = AttackSpeed();
+
+            float n;
+            bool inAttack = TryGetAttackProgress(out n);
+            if (!inAttack)
+            {
+                if (_attackSeen) { FinishAttack(); return; }                 // animation finished
+                if (Time.time - _attackStart > 0.6f)
+                {
+                    Log("attack state never started; aborting");
+                    FinishAttack();
+                }
+                return;
+            }
+            _attackSeen = true;
+
+            // Keep facing the enemy until the strike lands.
+            if (!_hitDone && _target != null)
+                FaceDirection(_target.transform.position - transform.position, dt);
+
+            // Step in during the wind-up.
+            if (!_hitDone && _move.lungeModelMeters > 0f && _target != null)
+            {
+                float p = Mathf.Clamp01(n / Mathf.Max(0.05f, _move.hitAt));
+                float eased = 1f - (1f - p) * (1f - p);
+                float step = _move.lungeModelMeters * Scale() * eased - _lungeApplied;
+                if (step > 0f)
+                {
+                    float gap = FlatDist(_target.transform.position) - BodyGap();
+                    step = Mathf.Min(step, Mathf.Max(0f, gap));
+                    transform.position += transform.forward * step;
+                    _lungeApplied += step;
+                }
+            }
+
+            if (!_hitDone && n >= _move.hitAt) { _hitDone = true; ResolveHit(); }
+            if (n >= _move.endAt) FinishAttack();
+        }
+
+        bool TryGetAttackProgress(out float n)
+        {
+            var cur = _animator.GetCurrentAnimatorStateInfo(0);
+            if (cur.IsName(attackStateName)) { n = cur.normalizedTime; return true; }
+            if (_animator.IsInTransition(0))
+            {
+                var next = _animator.GetNextAnimatorStateInfo(0);
+                if (next.IsName(attackStateName)) { n = next.normalizedTime; return true; }
+            }
+            n = 0f;
+            return false;
+        }
+
+        void FinishAttack()
+        {
+            var set = CurrentMoveset();
+            Vector2 range = set != null ? set.cooldownRange : new Vector2(0.3f, 0.6f);
+            float insightFactor = Mathf.Clamp(1f + 0.04f * (Insight() - 5f), 0.6f, 1.6f);
+            _cooldown = Random.Range(range.x, range.y) / insightFactor;
+            EnterState(State.Engage);
+        }
+
+        void ResolveHit()
+        {
+            if (_target == null || _target.IsDead) return;
+            var hp = _target.GetComponent<Health>();
+            if (hp == null) return;
+
+            Vector3 to = _target.transform.position - transform.position;
+            to.y = 0f;
+            float dist = to.magnitude;
+            float reach = BodyGap() + WeaponReach() * Mathf.Max(1f, _move.reachMul) + reachSlackFactor * _height + _lungeApplied * 0.5f;
+            bool inCone = dist < 1e-4f || Vector3.Angle(transform.forward, to) <= hitConeDegrees;
+
+            if (dist > reach || !inCone) { Log("whiff (range/angle)"); return; }
+            if (_targetBrain != null && _targetBrain.IsInvulnerable) { Log("target dodged"); return; }
+
+            var data = Data();
+            string style = ProgressionRules.StyleKey(_holder != null ? _holder.Current : null);
+            float profBonus = data != null ? ProgressionRules.ProfDamageBonus(ProgressionRules.ProfLevel(data, style)) : 0f;
+
+            float fallback = _meleeCombat != null ? _meleeCombat.damage : 25f;
+            float dmg = DamageCalculator.ComputeMelee(gameObject, _target.gameObject, fallback) * _move.damageMul * (1f + profBonus) * (_targetBrain != null ? _targetBrain.IncomingDamageFactor() : 1f);
+            hp.TakeDamage(dmg);
+            BattleEvents.AnnounceDamage(_target, dmg);
+            if (data != null) ProgressionRules.AddProfXp(data, style, ProgressionRules.ProfGain(data, hp.IsDead));
+            Log("hit for " + dmg.ToString("0.0"));
+
+            if (_targetBrain != null)
+            {
+                if (_targetBrain.IsBlocking) _targetBrain.ReceiveBlockedHit(transform.position, _move.knockbackModelMeters);
+                else _targetBrain.ReceiveHit(transform.position, _move.knockbackModelMeters, _move.stagger);
+                _targetBrain.StartHitStop(hitStopSeconds);
+            }
+            StartHitStop(hitStopSeconds);
+        }
+
+        // ------------------------------------------------------------------ reactions
+        public void StartHitStop(float seconds)
+        {
+            _hitStopUntil = Mathf.Max(_hitStopUntil, Time.time + seconds);
+        }
+
+        /// <summary>Called by an attacker at the start of its swing. The defender may decide to dodge.</summary>
+        public void OnIncomingAttack(FighterBrain attacker, float hitDelay)
+        {
+            if (_state == State.Dead || _state == State.Attack || _state == State.Hit || _state == State.Dodge || _state == State.Block) return;
+
+            // Shield users prefer to block.
+            if (_holder != null && _holder.HasShield && Time.time >= _nextBlockAt)
+            {
+                float blockChance = Mathf.Clamp01(baseBlockChance + blockPerInsight * Insight());
+                if (Random.value <= blockChance) { StartBlock(attacker.transform.position, hitDelay); return; }
+            }
+
+            if (Time.time < _nextDodgeAt) return;
+
+            float chance = Mathf.Clamp01(baseDodgeChance + dodgePerInsight * Insight());
+            if (Random.value > chance) return;
+            StartDodge(attacker.transform.position);
+        }
+
+        void StartBlock(Vector3 fromPos, float hitDelay)
+        {
+            _blockFrom = fromPos;
+            _blockSeconds = Mathf.Max(0.5f, hitDelay + 0.4f);
+            _nextBlockAt = Time.time + _blockSeconds + blockCooldown;
+            if (_fa != null) _fa.PlayBlock();
+            BattleEvents.AnnounceAction(_ai, "Block!");
+            EnterState(State.Block);
+        }
+
+        void TickBlock(float dt)
+        {
+            FaceDirection(_blockFrom - transform.position, dt);
+            if (_stateTime >= _blockSeconds) EnterState(State.Engage);
+        }
+
+        /// <summary>A hit landed on a raised shield: small shove and the 'blocked' reaction, but no stagger.</summary>
+        public void ReceiveBlockedHit(Vector3 fromPos, float knockbackModelMeters)
+        {
+            if (_state != State.Block) return;
+
+            Vector3 dir = transform.position - fromPos;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 1e-6f) dir = -transform.forward;
+            dir.Normalize();
+
+            float kb = knockbackModelMeters * Scale() * 0.3f;
+            _kbDir = dir;
+            _kbRemaining = kb;
+            _kbRate = kb / Mathf.Max(0.05f, knockbackSeconds);
+
+            if (_fa != null) _fa.PrepareBlockHit();
+            _ma.PlayHit(null);
+            Log("blocked a hit");
+        }
+
+        /// <summary>Multiplier on damage this fighter takes (blocking, or just carrying a shield).</summary>
+        public float IncomingDamageFactor()
+        {
+            if (_state == State.Block) return blockDamageFactor;
+            if (_holder != null && _holder.HasShield) return 1f - shieldPassiveReduction;
+            return 1f;
+        }
+
+        void StartDodge(Vector3 fromPos)
+        {
+            Vector3 away = transform.position - fromPos;
+            away.y = 0f;
+            if (away.sqrMagnitude < 1e-6f) away = -transform.forward;
+            away.Normalize();
+
+            Vector3 side = Vector3.Cross(Vector3.up, away) * (Random.value < 0.5f ? 1f : -1f);
+            _dodgeDir = (away * 0.6f + side).normalized;
+            _dodgeFromPos = fromPos;
+            if (_fa != null)
+            {
+                Vector3 local = transform.InverseTransformDirection(_dodgeDir);
+                _fa.PrepareDodge(local.z < -0.45f ? FighterAnimation.DodgeDir.Back
+                                                  : (local.x >= 0f ? FighterAnimation.DodgeDir.Right : FighterAnimation.DodgeDir.Left));
+            }
+            _dodgeDistance = dodgeModelMeters * Scale();
+            _dodgeMoved = 0f;
+            _nextDodgeAt = Time.time + dodgeCooldown;
+
+            _ma.PlayDodge(null);
+            BattleEvents.AnnounceAction(_ai, "Dodge!");
+            EnterState(State.Dodge);
+        }
+
+        void TickDodge(float dt)
+        {
+            float p = Mathf.Clamp01(_stateTime / Mathf.Max(0.1f, dodgeSeconds));
+            float eased = 1f - (1f - p) * (1f - p);
+            float step = _dodgeDistance * eased - _dodgeMoved;
+            if (step > 0f) { transform.position += _dodgeDir * step; _dodgeMoved += step; }
+
+            // Directional dodge clips keep the fighter facing its attacker; the old roll faced the way it moved.
+            Vector3 face = (_fa != null && _fa.HasDirectionalDodge) ? (_dodgeFromPos - transform.position) : _dodgeDir;
+            FaceDirection(face, dt);
+            if (_stateTime >= dodgeSeconds) EnterState(State.Engage);
+        }
+
+        /// <summary>Called by the attacker when its strike connects (after damage is applied).</summary>
+        public void ReceiveHit(Vector3 fromPos, float knockbackModelMeters, float stagger)
+        {
+            if (_state == State.Dead || _hp.IsDead) return;
+
+            Vector3 dir = transform.position - fromPos;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 1e-6f) dir = -transform.forward;
+            dir.Normalize();
+
+            bool resist = _state == State.Attack && Random.value < Ego() * egoPoisePerPoint;
+            float kb = knockbackModelMeters * Scale() * (resist ? 0.4f : 1f);
+            _kbDir = dir;
+            _kbRemaining = kb;
+            _kbRate = kb / Mathf.Max(0.05f, knockbackSeconds);
+
+            if (resist) { Log("shrugged off the flinch"); return; }
+
+            _stunSeconds = hitStunSeconds * Mathf.Max(0.2f, stagger);
+            if (_fa != null) _fa.PrepareHit();
+            _ma.PlayHit(null);
+            EnterState(State.Hit);
+        }
+
+        void TickHit()
+        {
+            if (_stateTime < _stunSeconds) return;
+            _cooldown = Mathf.Max(_cooldown, 0.15f);
+            EnterState(State.Engage);
+        }
+
+        void ApplyKnockback(float dt)
+        {
+            if (_kbRemaining <= 0f) return;
+            float step = Mathf.Min(_kbRemaining, _kbRate * dt);
+            transform.position += _kbDir * step;
+            _kbRemaining -= step;
+        }
+
+        void EnterDead()
+        {
+            _state = State.Dead;
+            _animator.speed = 1f;
+            if (_fa != null) _fa.PrepareDeath();
+            _ma.PlayDeath();
+            Log("dead");
+        }
+
+        // ------------------------------------------------------------------ movement helpers
+        void MoveToward(Vector3 worldPos, float stopDistance, float modelMps, float dt)
+        {
+            Vector3 to = worldPos - transform.position;
+            to.y = 0f;
+            float dist = to.magnitude;
+            if (dist < 1e-5f) return;
+
+            Vector3 dir = to / dist;
+            FaceDirection(dir, dt);
+
+            float step = Mathf.Min(modelMps * Scale() * dt, Mathf.Max(0f, dist - stopDistance));
+            if (step <= 0f) return;
+
+            transform.position += dir * step;
+            _wantMove = true;
+            _moveModelMps = modelMps;
+        }
+
+        void FaceDirection(Vector3 dir, float dt)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 1e-8f) return;
+            var want = Quaternion.LookRotation(dir.normalized, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, want, turnDegPerSecond * dt);
+        }
+
+        void ApplyLocomotionAnim(float dt)
+        {
+            _speed01 = Mathf.MoveTowards(_speed01, _wantMove ? 1f : 0f, 8f * dt);
+            _ma.SetSpeed(_speed01);
+
+            if (_wantMove)
+                _animSpeedTarget = Mathf.Clamp(_moveModelMps / Mathf.Max(0.1f, walkClipModelMps), 0.75f, 2f);
+            _animator.speed = _animSpeedTarget;
+        }
+
+        // ------------------------------------------------------------------ small helpers
+        float Scale() { return Mathf.Max(0.0001f, transform.lossyScale.y); }
+
+        float FlatDist(Vector3 worldPos)
+        {
+            Vector3 a = transform.position;
+            a.y = 0f;
+            worldPos.y = 0f;
+            return Vector3.Distance(a, worldPos);
+        }
+
+        // Distance between the two bodies' surfaces when both stand still (so it scales with size).
+        float BodyGap()
+        {
+            float otherH = _targetBrain != null ? _targetBrain.BodyHeight : _height;
+            return bodyRadiusFactor * (_height + otherH);
+        }
+
+        float WeaponReach()
+        {
+            float f = unarmedReachFactor;
+            if (_holder != null && _holder.Current != null)
+            {
+                switch (_holder.Current.weaponClass)
+                {
+                    case WeaponClass.TwoHand:     f = twoHandReachFactor; break;
+                    case WeaponClass.DualOneHand: f = dualReachFactor;    break;
+                    default:                      f = oneHandReachFactor; break;
+                }
+            }
+            return f * _height;
+        }
+
+        // How far from the target's centre this fighter stands to attack.
+        float StopDist() { return BodyGap() + WeaponReach(); }
+
+        float MeasureHeight()
+        {
+            float fallback = 1.8f * Scale();
+            var rends = GetComponentsInChildren<SkinnedMeshRenderer>();
+            if (rends.Length == 0) return fallback;
+
+            var b = rends[0].bounds;
+            for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+            return Mathf.Clamp(b.size.y, 0.8f * Scale(), 4.5f * Scale());
+        }
+
+        CharacterStats Stats
+        {
+            get
+            {
+                if (_stats == null) _stats = GetComponent<CharacterStats>();
+                return _stats;
+            }
+        }
+        FighterData Data()
+        {
+            if (_identity == null) _identity = GetComponent<FighterIdentity>();
+            return _identity != null ? _identity.Data : null;
+        }
+
+        float Insight() { var s = Stats; return s != null ? s.INSIGHT : 5f; }
+        float Ego()     { var s = Stats; return s != null ? s.EGO : 5f; }
+
+        void Log(string message)
+        {
+            if (debugLogs) Debug.Log("[Brain] " + name + ": " + message, this);
+        }
+    }
+}

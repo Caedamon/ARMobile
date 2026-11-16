@@ -29,5 +29,15 @@ namespace Weaponary
         [Header("Attacks (owned by the weapon)")]
         [Tooltip("One of these is picked per attack (never the same twice in a row).")]
         public List<AnimationClip> attackClips = new List<AnimationClip>();
+        
+        [Header("Real-time combat")]
+        [Tooltip("Attack set used by the real-time FighterBrain. Filled in by Tools > Kaiju > Combat > Create Starter Movesets.")]
+        public Combat.Moveset moveset;
+
+        [Header("Off-hand (shield or second weapon)")]
+        [Tooltip("Rotation of the off-hand model in the hand socket, in degrees. Use this if a shield sits wrong.")]
+        public Vector3 offhandEuler;
+        [Tooltip("Position offset of the off-hand model in the hand socket (socket-local units).")]
+        public Vector3 offhandOffset;
     }
 }

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23a48df6886e71c41bbd91ed249edca1, type: 3}
+  m_Name: Knight's Sword & Tower Shield
+  m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
+  displayName: Knight's Sword & Tower Shield
+  weaponClass: 4
+  visualPrefab: {fileID: 4716712336500514737, guid: 3b1010f3dabc4874aaa44790167ed977, type: 3}
+  offhandVisualPrefab: {fileID: 3552314190583999119, guid: 9722cfa65a5d9f44dab7caf7467da53a, type: 3}
+  baseDamage: 26
+  damageScalar: 1
+  reach: 0.1
+  attackClips: []
+  moveset: {fileID: 11400000, guid: d390bcf25599a4147aeaab0ad1c9c382, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

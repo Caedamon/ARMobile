@@ -25,3 +25,4 @@ MonoBehaviour:
   - {fileID: -302032850544529770, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: 4710205103915999847, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: 5005478036900451222, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+  moveset: {fileID: 11400000, guid: 87e7166dc47ec5a40a84ba8338c30ec4, type: 2}
