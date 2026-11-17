@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.XR.ARFoundation;
 
 namespace Game
 {
@@ -26,10 +27,16 @@ namespace Game
         int _pressCount;
         float _nextRefresh;
         float _fps;
+        int _frames;
+        float _windowStart;
+        float _worst;
+        float _startTime;
 
         public void Init(Func<string> stateProvider)
         {
             _state = stateProvider;
+            _startTime = Time.realtimeSinceStartup;
+            _windowStart = Time.unscaledTime;
             Build();
             Application.logMessageReceived += OnLog;
         }
@@ -73,7 +80,8 @@ namespace Game
 
         void Update()
         {
-            _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.1f);
+            _frames++;
+            _worst = Mathf.Max(_worst, Time.unscaledDeltaTime);
 
             Vector2 pos;
             var ts = Touchscreen.current;
@@ -83,11 +91,20 @@ namespace Game
             pos = _lastPos;
 
             if (Time.unscaledTime < _nextRefresh || _text == null) return;
-            _nextRefresh = Time.unscaledTime + 0.2f;
+            float window = Mathf.Max(0.001f, Time.unscaledTime - _windowStart);
+            _fps = _frames / window;
+            float worstMs = _worst * 1000f;
+            _frames = 0;
+            _worst = 0f;
+            _windowStart = Time.unscaledTime;
+            _nextRefresh = Time.unscaledTime + 0.5f;
 
             _sb.Length = 0;
-            _sb.Append("FPS ").Append(_fps.ToString("0")).Append("   screen ").Append(Screen.width).Append("x").Append(Screen.height)
-               .Append("   safe ").Append(Mathf.RoundToInt(Screen.safeArea.width)).Append("x").Append(Mathf.RoundToInt(Screen.safeArea.height)).Append('\n');
+            _sb.Append("Up ").Append((Time.realtimeSinceStartup - _startTime).ToString("0")).Append("s  frame ").Append(Time.frameCount)
+               .Append("  FPS ").Append(_fps.ToString("0.0")).Append("  worst ").Append(worstMs.ToString("0")).Append("ms").Append('\n');
+            _sb.Append(SystemInfo.graphicsDeviceType).Append("  ").Append(SystemInfo.deviceModel)
+               .Append("  ").Append(Screen.width).Append("x").Append(Screen.height).Append('\n');
+            _sb.Append("AR session: ").Append(ARSession.state).Append("   camera permission: ").Append(CameraPermission()).Append('\n');
             _sb.Append("Touchscreen: ").Append(ts != null ? "yes" : "NO").Append("   Mouse: ").Append(mouse != null ? "yes" : "no")
                .Append("   touching now: ").Append(ts != null && ts.primaryTouch.press.isPressed ? "yes" : "no").Append('\n');
             _sb.Append("State: ").Append(_state != null ? _state() : "?").Append("   presses: ").Append(_pressCount).Append('\n');
@@ -122,6 +139,15 @@ namespace Game
 
             foreach (var e in _errors) _sb.Append("ERR ").Append(e).Append('\n');
             _text.text = _sb.ToString();
+        }
+
+        static string CameraPermission()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.Camera) ? "yes" : "NO";
+#else
+            return "n/a";
+#endif
         }
 
         void Press(Vector2 p)
