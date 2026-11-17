@@ -531,6 +531,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4566219272553281715, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5532378546887728114, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -582,6 +586,16 @@ PrefabInstance:
     - target: {fileID: 8720759092197161943, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8903896437026812219, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
+      propertyPath: m_text
+      value: '<size=90%><i>Ave, Imperator, morituri te salutant!</i></size>
+
+
+        <b>Hail
+        the Victorious.</b>
+
+        <b>Honour the Fallen.</b>'
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
