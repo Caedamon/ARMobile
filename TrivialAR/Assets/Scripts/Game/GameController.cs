@@ -20,6 +20,8 @@ namespace Game
         public FighterCatalog catalog;
         public GameObject arenaPrefab;
         public List<WeaponDefinition> showcaseWeapons = new List<WeaponDefinition>();
+        [Tooltip("Material for the roster floor and tombstone. Assigned by Tools > Kaiju > Game > Create Stage Material.")]
+        public Material stageMaterial;
 
         public enum DebugOutcome { None, ForceVictory, ForceDefeat }
 
@@ -59,6 +61,7 @@ namespace Game
         // ------------------------------------------------------------------ setup
         void Awake()
         {
+            StageMaterials.Base = stageMaterial;
             _placer = GetComponent<ARStagePlacer>();
             if (_placer == null) _placer = gameObject.AddComponent<ARStagePlacer>();
 

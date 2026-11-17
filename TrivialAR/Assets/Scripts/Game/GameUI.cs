@@ -29,6 +29,7 @@ namespace Game
         static readonly Color SoftWhite = new Color(0.92f, 0.94f, 0.98f, 1f);
 
         Canvas _canvas;
+        CanvasScaler _scaler;
         RectTransform _safe;
         Rect _lastSafe;
 
@@ -69,7 +70,17 @@ namespace Game
         void Update()
         {
             if (Screen.safeArea != _lastSafe) ApplySafeArea();
+            AdaptScaler();
             HandleDirectTaps();
+        }
+
+        // The layout is designed for portrait (1080x1920). Portrait: scale by width. Landscape: scale by height,
+        // so titles aren't cut off and cards/buttons don't overlap.
+        void AdaptScaler()
+        {
+            if (_scaler == null) return;
+            float target = Screen.width > Screen.height ? 1f : 0f;
+            if (!Mathf.Approximately(_scaler.matchWidthOrHeight, target)) _scaler.matchWidthOrHeight = target;
         }
 
         // ------------------------------------------------------------------ direct tap handling
@@ -155,6 +166,7 @@ namespace Game
             _canvas.sortingOrder = 100;
 
             var scaler = go.AddComponent<CanvasScaler>();
+            _scaler = scaler;
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080f, 1920f);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;

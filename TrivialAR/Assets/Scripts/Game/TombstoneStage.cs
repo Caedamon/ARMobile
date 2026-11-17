@@ -56,7 +56,8 @@ namespace Game
             go.transform.localPosition = pos;
             go.transform.localScale = scale;
             var r = go.GetComponent<Renderer>();
-            if (r != null) r.material.color = c;
+            var mat = StageMaterials.Make(c);
+            if (r != null && mat != null) r.sharedMaterial = mat;
             return go;
         }
     }

@@ -11,6 +11,11 @@ namespace Fighters
         [Tooltip("TextMeshPro font size. About 3 is readable at table scale; raise/lower to taste.")]
         public float fontSize = 3f;
 
+        [Tooltip("Distance (meters) at which the label has its normal size. Closer = smaller, farther = bigger, so it stays readable.")]
+        public float refDistance = 0.6f;
+        public float minScale = 0.25f;
+        public float maxScale = 2f;
+
         TextMeshPro _text;
         Camera _cam;
 
@@ -32,7 +37,13 @@ namespace Fighters
         {
             if (_text == null) return;
             if (_cam == null) _cam = Camera.main;
-            if (_cam != null) _text.transform.rotation = _cam.transform.rotation;
+            if (_cam == null) return;
+            _text.transform.rotation = _cam.transform.rotation;
+
+            // Keep the label roughly the same size on screen, wherever the camera is.
+            float d = Vector3.Distance(_cam.transform.position, _text.transform.position);
+            float s = Mathf.Clamp(d / Mathf.Max(0.05f, refDistance), minScale, maxScale);
+            _text.transform.localScale = Vector3.one * s;
         }
     }
 }

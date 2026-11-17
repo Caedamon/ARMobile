@@ -539,6 +539,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6135136774426218196, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
+      propertyPath: stageMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 343bc7b3fdc98c74ea52529bdd382d8e, type: 2}
     - target: {fileID: 6893003347545578057, guid: 37afcd9d86de3d3499f512d9637b6c42, type: 3}
       propertyPath: m_LocalPosition.x
       value: 526.76666

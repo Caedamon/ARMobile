@@ -51,7 +51,8 @@ namespace Game
             floor.transform.localPosition = new Vector3(0f, 0.003f, 0f);
             floor.transform.localScale = new Vector3(0.9f, 0.003f, 0.9f);
             var rend = floor.GetComponent<Renderer>();
-            if (rend != null) rend.material.color = new Color(0.10f, 0.11f, 0.15f);
+            var mat = StageMaterials.Make(new Color(0.10f, 0.11f, 0.15f));
+            if (rend != null && mat != null) rend.sharedMaterial = mat;
         }
 
         // ------------------------------------------------------------------ content
