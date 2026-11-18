@@ -159,6 +159,10 @@ namespace Game
 
         void BuildCanvas()
         {
+            // A GameUI_Canvas saved into a prefab by accident would show up as a dead duplicate menu: remove it.
+            var stale = transform.Find("GameUI_Canvas");
+            if (stale != null) DestroyImmediate(stale.gameObject);
+
             var go = new GameObject("GameUI_Canvas");
             go.transform.SetParent(transform, false);
             _canvas = go.AddComponent<Canvas>();

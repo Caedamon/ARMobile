@@ -40,6 +40,11 @@ namespace Game
 
         public GameState State { get { return _state; } }
 
+        static GameController _instance;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { _instance = null; }
+
         GameState _state;
         GameUI _ui;
         ARStagePlacer _placer;
@@ -61,11 +66,22 @@ namespace Game
         // ------------------------------------------------------------------ setup
         void Awake()
         {
+            // Only one GameController may exist (a second one would build a second, duplicate menu).
+            if (_instance != null && _instance != this)
+            {
+                Debug.LogWarning("[Game] A second GameController was found and removed. Keep only one in the scene.", this);
+                enabled = false;
+                Destroy(gameObject);
+                return;
+            }
+            _instance = this;
+
             StageMaterials.Base = stageMaterial;
             _placer = GetComponent<ARStagePlacer>();
             if (_placer == null) _placer = gameObject.AddComponent<ARStagePlacer>();
 
-            _ui = gameObject.AddComponent<GameUI>();
+            _ui = GetComponent<GameUI>();
+            if (_ui == null) _ui = gameObject.AddComponent<GameUI>();
 
             // The old one-shot placement script would fight with ours.
             var oldPlacer = FindFirstObjectByType<ARPlaceArena>();
@@ -89,6 +105,11 @@ namespace Game
             _ui.DeathMatchClicked += OnDeathMatch;
             _ui.ResultContinueClicked += OnResultContinue;
 
+            // Remove any overlay that was saved into a prefab by accident, then add a fresh one.
+            var oldOverlay = GetComponent<DeviceDebugOverlay>();
+            if (oldOverlay != null) DestroyImmediate(oldOverlay);
+            var oldOverlayCanvas = transform.Find("DeviceDebugCanvas");
+            if (oldOverlayCanvas != null) DestroyImmediate(oldOverlayCanvas.gameObject);
             if (deviceDebugOverlay) gameObject.AddComponent<DeviceDebugOverlay>().Init(() => _state.ToString());
 
             EnterTitle();

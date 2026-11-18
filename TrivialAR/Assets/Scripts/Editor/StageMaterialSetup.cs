@@ -31,9 +31,15 @@ namespace KaijuTools
                 AssetDatabase.CreateAsset(mat, Path);
             }
 
-            var so = new SerializedObject(gc);
+            // If the controller is a prefab instance, set the value on the prefab itself so every instance gets it.
+            var target = gc;
+            var source = PrefabUtility.GetCorrespondingObjectFromSource(gc);
+            if (source != null) target = source;
+
+            var so = new SerializedObject(target);
             so.FindProperty("stageMaterial").objectReferenceValue = mat;
             so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(target);
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(scene);
