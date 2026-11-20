@@ -56,10 +56,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7f5265db0840df746b573fec4f8b5daa, type: 2}
   - {fileID: 11400000, guid: 2c4b62270ddff954b88d9f0f6de0d0e5, type: 2}
   stageMaterial: {fileID: 2100000, guid: 343bc7b3fdc98c74ea52529bdd382d8e, type: 2}
+  gameUiPrefab: {fileID: 5870714131854577669, guid: 36e99504f6951c6429ac186b2140db82, type: 3}
+  rosterStagePrefab: {fileID: 8568285645401212044, guid: 087f7dbfd02eba64b924415240d8407a, type: 3}
+  tombstoneStagePrefab: {fileID: 8271405496117354117, guid: 6f0490076faec1a479458c60bf2e2a59, type: 3}
+  titleOverride: 
   debugLogs: 0
   deviceDebugOverlay: 1
   debugOutcome: 0
-  gameTitle: ARENA
   rosterSize: 3
   fightEndDelay: 2.5
 --- !u!114 &98511016448176975

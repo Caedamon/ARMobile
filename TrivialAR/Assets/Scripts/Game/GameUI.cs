@@ -28,43 +28,58 @@ namespace Game
         static readonly Color BarFill  = new Color(0.96f, 0.76f, 0.26f, 1f);
         static readonly Color SoftWhite = new Color(0.92f, 0.94f, 0.98f, 1f);
 
-        Canvas _canvas;
-        CanvasScaler _scaler;
-        RectTransform _safe;
+        [SerializeField] Canvas _canvas;
+        [SerializeField] CanvasScaler _scaler;
+        [SerializeField] RectTransform _safe;
         Rect _lastSafe;
 
-        GameObject _titlePanel, _placePanel, _rosterPanel, _hubPanel, _resultPanel;
+        [SerializeField] GameObject _titlePanel, _placePanel, _rosterPanel, _hubPanel, _resultPanel;
 
         // title
-        TMP_Text _titleText;
-        Button _continueBtn;
-        TMP_Text _continueLabel;
+        [SerializeField] TMP_Text _titleText;
+        [SerializeField] Button _continueBtn;
+        [SerializeField] TMP_Text _continueLabel;
+        [SerializeField] Button _newGameButton, _placeInFrontButton, _pickButton, _backButton, _deathMatchButton, _resultButton;
 
         // roster
-        GameObject _card, _pickBtn, _backBtn;
-        TMP_Text _cardName, _cardTier, _cardStyle;
-        readonly RectTransform[] _statFill = new RectTransform[4];
-        readonly TMP_Text[] _statValue = new TMP_Text[4];
+        [SerializeField] GameObject _card, _pickBtn, _backBtn;
+        [SerializeField] TMP_Text _cardName, _cardTier, _cardStyle;
+        [SerializeField] RectTransform[] _statFill = new RectTransform[4];
+        [SerializeField] TMP_Text[] _statValue = new TMP_Text[4];
         static readonly string[] StatNames = { "MIGHT", "EGO", "EDUCATION", "INSIGHT" };
 
         // hub
-        TMP_Text _hubName, _hubInfo, _hubProf;
+        [SerializeField] TMP_Text _hubName, _hubInfo, _hubProf;
 
         // result
-        TMP_Text _resultTitle, _resultSub, _resultBtnLabel;
+        [SerializeField] TMP_Text _resultTitle, _resultSub, _resultBtnLabel;
 
         // ------------------------------------------------------------------ build
         void Awake()
         {
             _instance = this;
             EnsureEventSystem();
+
+            // Normal case: the menus come from the GameUI prefab (edit them there).
+            // Fallback: if this component has no menus yet, build the default ones in code.
+            if (_titlePanel == null) BuildAll();
+
+            WireButtons();
+            HideAll();
+        }
+
+        /// <summary>
+        /// Builds the default menus. Used by Tools > Kaiju > Game > Create Game Prefabs (to make the prefab)
+        /// and as a fallback at runtime. Panels stay visible here so you can see and edit them in the prefab.
+        /// </summary>
+        public void BuildAll()
+        {
             BuildCanvas();
             BuildTitle();
             BuildPlace();
             BuildRoster();
             BuildHub();
             BuildResult();
-            HideAll();
         }
 
         void Update()
@@ -101,6 +116,24 @@ namespace Game
             if (Time.unscaledTime - _lastFire < 0.3f) return;
             _lastFire = Time.unscaledTime;
             if (handler != null) handler();
+        }
+
+        void WireButtons()
+        {
+            Wire(_continueBtn, () => Raise(ContinueClicked));
+            Wire(_newGameButton, () => Raise(NewGameClicked));
+            Wire(_placeInFrontButton, () => Raise(PlaceInFrontClicked));
+            Wire(_pickButton, () => Raise(PickClicked));
+            Wire(_backButton, () => Raise(BackClicked));
+            Wire(_deathMatchButton, () => Raise(DeathMatchClicked));
+            Wire(_resultButton, () => Raise(ResultContinueClicked));
+        }
+
+        static void Wire(Button b, UnityEngine.Events.UnityAction action)
+        {
+            if (b == null) return;
+            b.onClick.RemoveAllListeners();   // only removes listeners added from code
+            b.onClick.AddListener(action);
         }
 
         Button ButtonAt(Vector2 screenPos)
@@ -180,7 +213,7 @@ namespace Game
 
             _safe = NewRect("SafeArea", go.transform);
             Stretch(_safe);
-            ApplySafeArea();
+            if (Application.isPlaying) ApplySafeArea();
         }
 
         void ApplySafeArea()
@@ -208,11 +241,10 @@ namespace Game
             Anchor(sub.rectTransform, 0.5f, 0.64f, new Vector2(1000f, 80f));
 
             _continueBtn = NewButton(rt, "ContinueButton", "Continue", 0.5f, 0.42f, new Vector2(720f, 140f), Green, out _continueLabel);
-            _continueBtn.onClick.AddListener(() => Raise(ContinueClicked));
 
             TMP_Text l;
             var nb = NewButton(rt, "NewGameButton", "New Game", 0.5f, 0.31f, new Vector2(720f, 140f), Blue, out l);
-            nb.onClick.AddListener(() => Raise(NewGameClicked));
+            _newGameButton = nb;
         }
 
         void BuildPlace()
@@ -228,7 +260,7 @@ namespace Game
 
             TMP_Text l;
             var b = NewButton(rt, "PlaceInFrontButton", "Place in front of me", 0.5f, 0.13f, new Vector2(720f, 120f), Grey, out l);
-            b.onClick.AddListener(() => Raise(PlaceInFrontClicked));
+            _placeInFrontButton = b;
         }
 
         void BuildRoster()
@@ -277,11 +309,11 @@ namespace Game
             // ---- buttons
             TMP_Text l;
             var pick = NewButton(rt, "PickButton", "Pick this fighter", 0.5f, 0.16f, new Vector2(760f, 140f), Green, out l);
-            pick.onClick.AddListener(() => Raise(PickClicked));
+            _pickButton = pick;
             _pickBtn = pick.gameObject;
 
             var back2 = NewButton(rt, "BackButton", "Back to selection", 0.5f, 0.075f, new Vector2(760f, 110f), Grey, out l);
-            back2.onClick.AddListener(() => Raise(BackClicked));
+            _backButton = back2;
             _backBtn = back2.gameObject;
         }
 
@@ -299,7 +331,7 @@ namespace Game
 
             TMP_Text l;
             var dm = NewButton(rt, "DeathMatchButton", "Death Match", 0.5f, 0.24f, new Vector2(760f, 140f), Green, out l);
-            dm.onClick.AddListener(() => Raise(DeathMatchClicked));
+            _deathMatchButton = dm;
 
             var duel = NewButton(rt, "DuelButton", "Duel  (coming soon)", 0.5f, 0.145f, new Vector2(760f, 110f), Grey, out l);
             duel.interactable = false;
@@ -322,7 +354,7 @@ namespace Game
             Stretch(_resultSub.rectTransform);
 
             var b = NewButton(rt, "ResultButton", "Continue", 0.5f, 0.10f, new Vector2(760f, 140f), Blue, out _resultBtnLabel);
-            b.onClick.AddListener(() => Raise(ResultContinueClicked));
+            _resultButton = b;
         }
 
         // ------------------------------------------------------------------ screens
@@ -338,7 +370,7 @@ namespace Game
         public void ShowTitle(string title, bool canContinue, string continueLabel)
         {
             HideAll();
-            _titleText.text = title;
+            if (!string.IsNullOrEmpty(title)) _titleText.text = title;   // empty = keep the text from the prefab
             _continueBtn.interactable = canContinue;
             _continueLabel.text = continueLabel;
             _titlePanel.SetActive(true);

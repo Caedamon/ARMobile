@@ -23,6 +23,13 @@ namespace Game
         [Tooltip("Material for the roster floor and tombstone. Assigned by Tools > Kaiju > Game > Create Stage Material.")]
         public Material stageMaterial;
 
+        [Header("UI and stage prefabs (made by Tools > Kaiju > Game > Create Game Prefabs - edit them freely)")]
+        public GameUI gameUiPrefab;
+        public RosterStage rosterStagePrefab;
+        public TombstoneStage tombstoneStagePrefab;
+        [Tooltip("Leave empty to keep the title text from the GameUI prefab.")]
+        public string titleOverride = "";
+
         public enum DebugOutcome { None, ForceVictory, ForceDefeat }
 
         [Header("Debug")]
@@ -33,7 +40,6 @@ namespace Game
         public DebugOutcome debugOutcome = DebugOutcome.None;
 
         [Header("Tuning")]
-        public string gameTitle = "ARENA";
         public int rosterSize = 3;
         [Tooltip("Seconds to let the death animation play before showing the result.")]
         public float fightEndDelay = 2.5f;
@@ -80,8 +86,16 @@ namespace Game
             _placer = GetComponent<ARStagePlacer>();
             if (_placer == null) _placer = gameObject.AddComponent<ARStagePlacer>();
 
-            _ui = GetComponent<GameUI>();
-            if (_ui == null) _ui = gameObject.AddComponent<GameUI>();
+            if (gameUiPrefab != null)
+            {
+                _ui = Instantiate(gameUiPrefab, transform);
+                _ui.name = "GameUI";
+            }
+            else
+            {
+                _ui = GetComponent<GameUI>();
+                if (_ui == null) _ui = gameObject.AddComponent<GameUI>();   // fallback: build the default menus in code
+            }
 
             // The old one-shot placement script would fight with ours.
             var oldPlacer = FindFirstObjectByType<ARPlaceArena>();
@@ -159,7 +173,7 @@ namespace Game
             _save = SaveSystem.Load();
             bool canContinue = _save != null && _save.hasFighter && _save.fighter != null;
             string label = canContinue ? "Continue  (" + _save.fighter.displayName + ")" : "Continue";
-            _ui.ShowTitle(gameTitle, canContinue, label);
+            _ui.ShowTitle(titleOverride, canContinue, label);
         }
 
         void OnNewGame()
@@ -206,8 +220,7 @@ namespace Game
             _state = GameState.Roster;
             SetHud(false);
 
-            var stage = _placer.CreateStage("RosterStage");
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("RosterStage");
             _roster.Init(catalog, showcaseWeapons);
 
             _candidates = new List<FighterData>();
@@ -275,8 +288,7 @@ namespace Game
             SetHud(false);
 
             var fighter = FighterSession.PlayerFighter;
-            var stage = _placer.CreateStage("HubStage");
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("HubStage");
             _roster.Init(catalog, showcaseWeapons);
             _roster.ShowSingle(fighter);
 
@@ -353,6 +365,7 @@ namespace Game
 
             var fighter = FighterSession.PlayerFighter;
             if (_save == null) _save = new SaveData();
+            fighter.fights++;
 
             if (playerWon)
             {
@@ -386,8 +399,15 @@ namespace Game
                 _save.fighter = new FighterData();
                 SaveSystem.Save(_save);
 
-                var stage = _placer.CreateStage("TombstoneStage");
-                if (stage != null) stage.AddComponent<TombstoneStage>().Build(fallen);
+                var stage = tombstoneStagePrefab != null
+                    ? _placer.InstantiateStage(tombstoneStagePrefab.gameObject)
+                    : _placer.CreateStage("TombstoneStage");
+                if (stage != null)
+                {
+                    var tomb = stage.GetComponent<TombstoneStage>();
+                    if (tomb == null) tomb = stage.AddComponent<TombstoneStage>();
+                    tomb.Build(fallen, _lastEnemy);
+                }
 
                 _resultToHub = false;
                 _ui.ShowResult("FALLEN", new Color(0.92f, 0.30f, 0.30f),
@@ -396,12 +416,23 @@ namespace Game
             }
         }
 
+        // A roster/hub/result stage: from the prefab if one is assigned, otherwise built in code.
+        RosterStage NewRosterStage(string stageName)
+        {
+            GameObject stage = rosterStagePrefab != null
+                ? _placer.InstantiateStage(rosterStagePrefab.gameObject)
+                : _placer.CreateStage(stageName);
+            if (stage == null) return null;
+            var rs = stage.GetComponent<RosterStage>();
+            if (rs == null) rs = stage.AddComponent<RosterStage>();
+            return rs;
+        }
+
         // The winner standing on the table (re-uses the hub display).
         void ShowFighterStage(FighterData fighter)
         {
-            var stage = _placer.CreateStage("ResultStage");
-            if (stage == null) return;
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("ResultStage");
+            if (_roster == null) return;
             _roster.Init(catalog, showcaseWeapons);
             _roster.ShowSingle(fighter);
         }
