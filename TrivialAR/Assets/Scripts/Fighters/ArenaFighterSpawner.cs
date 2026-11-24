@@ -16,12 +16,19 @@ namespace Fighters
 
         [Header("Nameplates")]
         public bool showNameplates = true;
+        [Tooltip("Empty space between the top of the head and the bottom of the name label (fighter-local units). Bigger = higher.")]
+        public float nameplateGap = 0.15f;
+        [Tooltip("Only used if the head can't be found.")]
         public float nameplateHeight = 2.3f;
         public float nameplateFontSize = 3f;
 
         [Header("Placement")]
         [Tooltip("Distance between the two fighters at the start (arena-local meters). 0 = use the PlayerSpawn/EnemySpawn markers.")]
         public float fighterSeparation = 1.2f;
+        [Tooltip("ON = the fighters start WEST and EAST of each other (left and right as you look at the table), so you can watch from where you stand. OFF = north/south (near and far).")]
+        public bool sideBySide = true;
+        [Tooltip("With sideBySide: the player starts on the left (west) side. OFF = the right side.")]
+        public bool playerOnWest = true;
         [Tooltip("Height of the fighters' feet above the arena floor (arena-local meters). 0 = standing on the surface.")]
         public float groundOffset = 0f;
 
@@ -29,6 +36,10 @@ namespace Fighters
         [Tooltip("ON = real-time FighterBrain drives the fighters. OFF = the old round-based BattleManager.")]
         public bool realtimeCombat = true;
         public Combat.Moveset unarmedMoveset;
+        [Tooltip("Shield, dodge and per-style balance numbers. Made by Tools > Kaiju > Combat > Create Combat Tuning. Empty = built-in defaults.")]
+        public Combat.CombatTuning combatTuning;
+        [Tooltip("Swing, hit, block, dodge, pickup and voice sounds. Made by Tools > Kaiju > Audio > Set Up Audio. Empty = silent fights.")]
+        public Combat.CombatSounds combatSounds;
         public Combat.AnimationPack animationPack;
         public bool brainDebugLogs = false;
 
@@ -79,18 +90,23 @@ namespace Fighters
         // Arena-local spawn position for a side. Feet always at groundOffset (not the markers' height).
         Vector3 SpawnLocal(FighterSide side, Transform marker)
         {
+            bool isPlayer = side == FighterSide.Player;
+            // -1 = west / near, +1 = east / far
+            float sign = sideBySide ? (isPlayer == playerOnWest ? -1f : 1f) : (isPlayer ? -1f : 1f);
+
             if (fighterSeparation > 0f)
             {
                 float half = fighterSeparation * 0.5f;
-                return new Vector3(0f, groundOffset, side == FighterSide.Player ? -half : half);
+                return sideBySide ? new Vector3(sign * half, groundOffset, 0f) : new Vector3(0f, groundOffset, sign * half);
             }
             if (marker != null)
             {
                 Vector3 l = transform.InverseTransformPoint(marker.position);
                 l.y = groundOffset;
+                if (sideBySide) l = new Vector3(sign * Mathf.Max(Mathf.Abs(l.x), Mathf.Abs(l.z)), groundOffset, 0f);
                 return l;
             }
-            return new Vector3(0f, groundOffset, side == FighterSide.Player ? -0.5f : 0.5f);
+            return sideBySide ? new Vector3(sign * 0.5f, groundOffset, 0f) : new Vector3(0f, groundOffset, sign * 0.5f);
         }
 
         FighterIdentity SpawnOne(FighterData d, FighterSide side, Transform at, Transform opponentSpawn)
@@ -129,6 +145,8 @@ namespace Fighters
                 var brain = go.GetComponent<Combat.FighterBrain>();
                 if (brain == null) brain = go.AddComponent<Combat.FighterBrain>();
                 brain.unarmedMoveset = unarmedMoveset;
+                brain.tuningAsset = combatTuning;
+                brain.sounds = combatSounds;
                 brain.debugLogs = brainDebugLogs;
             }
 
@@ -136,6 +154,7 @@ namespace Fighters
             {
                 var plate = go.AddComponent<FighterNameplate>();
                 plate.height = nameplateHeight;
+                plate.gapAboveHead = nameplateGap;
                 plate.fontSize = nameplateFontSize;
                 plate.Build(d);
             }

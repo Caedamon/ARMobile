@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c563ab1a40f7df74f9231a7c50c5b97a, type: 3}
+  m_Name: CombatTuning
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.CombatTuning
+  baseBlockChance: 0.22
+  blockPerInsight: 0.02
+  blockCooldown: 1
+  blockDamageFactor: 0.4
+  shieldPassiveReduction: 0.05
+  baseDodgeChance: 0.08
+  dodgePerInsight: 0.025
+  dodgeCooldown: 1.6
+  egoPoisePerPoint: 0.04
+  attackSpeedPerInsight: 0.02
+  unarmed:
+    damageMul: 1
+    speedMul: 1
+    cooldownMul: 1
+  oneHand:
+    damageMul: 1
+    speedMul: 1
+    cooldownMul: 1
+  shield:
+    damageMul: 1
+    speedMul: 1
+    cooldownMul: 1
+  twoHand:
+    damageMul: 1.1
+    speedMul: 1
+    cooldownMul: 1
+  dual:
+    damageMul: 1
+    speedMul: 1.1
+    cooldownMul: 0.9

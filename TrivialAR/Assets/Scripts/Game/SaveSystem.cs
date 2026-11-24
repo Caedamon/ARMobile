@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Fighters;
 using UnityEngine;
@@ -8,10 +9,11 @@ namespace Game
     [Serializable]
     public sealed class SaveData
     {
-        public int version = 1;
+        public int version = 2;
         public bool hasFighter;                         // JsonUtility can't store "null", so use a flag
         public FighterData fighter = new FighterData();
         public int totalWins;
+        public List<FallenFighter> fallen = new List<FallenFighter>();   // the graveyard (oldest first)
     }
 
     /// <summary>One JSON file in Application.persistentDataPath.</summary>
@@ -24,7 +26,9 @@ namespace Game
             try
             {
                 if (!File.Exists(FilePath)) return null;
-                return JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath));
+                var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath));
+                if (data != null && data.fallen == null) data.fallen = new List<FallenFighter>();   // saves from before the Book
+                return data;
             }
             catch (Exception e)
             {

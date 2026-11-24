@@ -56,26 +56,18 @@ namespace Combat
         [Header("Reactions")]
         public float hitStunSeconds = 0.35f;
         public float knockbackSeconds = 0.18f;
-        public float baseDodgeChance = 0.08f;
-        public float dodgePerInsight = 0.025f;
-        public float dodgeCooldown = 1.6f;
+        // dodge chance and cooldown now live in the CombatTuning asset
         public float dodgeSeconds = 0.55f;
         public float dodgeInvulnSeconds = 0.45f;
         public float dodgeModelMeters = 1.4f;
-        [Tooltip("Chance per EGO point to shrug off a flinch while attacking.")]
-        public float egoPoisePerPoint = 0.04f;
-        [Tooltip("Attack speed bonus per INSIGHT point above 5.")]
-        public float attackSpeedPerInsight = 0.02f;
 
-        [Header("Shield")]
-        [Tooltip("Base chance to raise the shield against an incoming attack.")]
-        public float baseBlockChance = 0.30f;
-        public float blockPerInsight = 0.03f;
-        public float blockCooldown = 1.0f;
-        [Tooltip("Damage taken while blocking (0.25 = a quarter).")]
-        public float blockDamageFactor = 0.25f;
-        [Tooltip("Damage reduction just for carrying a shield.")]
-        public float shieldPassiveReduction = 0.10f;
+        [Header("Balance numbers (shield, dodge, per-style multipliers)")]
+        [Tooltip("Set by the ArenaFighterSpawner. Empty = the built-in defaults.")]
+        public CombatTuning tuningAsset;
+
+        [Header("Sounds")]
+        [Tooltip("Set by the ArenaFighterSpawner (Combat Sounds). Empty = this fighter is silent.")]
+        public CombatSounds sounds;
 
         [Header("Pacing")]
         public float startDelayMax = 0.6f;
@@ -90,6 +82,22 @@ namespace Combat
         public bool IsInvulnerable { get { return _state == State.Dodge && _stateTime < dodgeInvulnSeconds; } }
 
         static readonly AttackMove FallbackMove = new AttackMove();
+
+        CombatTuning _tuning;
+        CombatTuning T
+        {
+            get
+            {
+                if (_tuning == null) _tuning = tuningAsset != null ? tuningAsset : CombatTuning.Default();
+                return _tuning;
+            }
+        }
+
+        // The tuning multipliers for whatever style the fighter is using right now.
+        StyleTuning StyleNow()
+        {
+            return T.For(ProgressionRules.StyleKey(_holder != null ? _holder.Current : null));
+        }
 
         MeleeAI _ai;
         MeleeAnimator _ma;
@@ -118,6 +126,7 @@ namespace Combat
         float _pickupPause;
         float _stunSeconds;
         float _height = 0.09f;
+        float _voicePitch = 1f;
 
         MeleeAI _target;
         FighterBrain _targetBrain;
@@ -163,6 +172,7 @@ namespace Combat
         void Start()
         {
             _height = MeasureHeight();
+            if (sounds != null) _voicePitch = sounds.VoicePitchFor(_ai.team == Combat.Team.Enemy);   // each fighter keeps its own voice
             Log("body height " + _height.ToString("0.000") + " m, stop distance (unarmed, vs same size) " + (bodyRadiusFactor * 2f * _height + unarmedReachFactor * _height).ToString("0.000") + " m");
             _ma.SetSpeed(0f);
             _spawnDelay = Random.Range(0.15f, Mathf.Max(0.2f, startDelayMax));
@@ -304,6 +314,7 @@ namespace Combat
             if (FlatDist(pos) <= reach)
             {
                 _pickupPause = _seeker.PickUp();
+                if (sounds != null) sounds.PlayPickup();
                 if (_fa != null) _pickupPause = Mathf.Max(_pickupPause, _fa.PlayPickup());
                 EnterState(State.Pickup);
                 return;
@@ -326,7 +337,7 @@ namespace Combat
 
         float AttackSpeed()
         {
-            return Mathf.Max(0.3f, _move.speed * (1f + attackSpeedPerInsight * (Insight() - 5f)));
+            return Mathf.Max(0.3f, _move.speed * StyleNow().speedMul * (1f + T.attackSpeedPerInsight * (Insight() - 5f)));
         }
 
         void StartAttack()
@@ -354,6 +365,7 @@ namespace Combat
             // Give the defender a chance to react before the strike lands.
             float len = _move.clip != null ? _move.clip.length : 0.7f;
             float hitDelay = len * _move.hitAt / AttackSpeed();
+            if (sounds != null) sounds.PlaySwing(hitDelay, _voicePitch);
             if (_targetBrain != null) _targetBrain.OnIncomingAttack(this, hitDelay);
 
             EnterState(State.Attack);
@@ -419,7 +431,7 @@ namespace Combat
             var set = CurrentMoveset();
             Vector2 range = set != null ? set.cooldownRange : new Vector2(0.3f, 0.6f);
             float insightFactor = Mathf.Clamp(1f + 0.04f * (Insight() - 5f), 0.6f, 1.6f);
-            _cooldown = Random.Range(range.x, range.y) / insightFactor;
+            _cooldown = Random.Range(range.x, range.y) * StyleNow().cooldownMul / insightFactor;
             EnterState(State.Engage);
         }
 
@@ -443,11 +455,15 @@ namespace Combat
             float profBonus = data != null ? ProgressionRules.ProfDamageBonus(ProgressionRules.ProfLevel(data, style)) : 0f;
 
             float fallback = _meleeCombat != null ? _meleeCombat.damage : 25f;
-            float dmg = DamageCalculator.ComputeMelee(gameObject, _target.gameObject, fallback) * _move.damageMul * (1f + profBonus) * (_targetBrain != null ? _targetBrain.IncomingDamageFactor() : 1f);
+            float dmg = DamageCalculator.ComputeMelee(gameObject, _target.gameObject, fallback) * _move.damageMul * StyleNow().damageMul * (1f + profBonus) * (_targetBrain != null ? _targetBrain.IncomingDamageFactor() : 1f);
             hp.TakeDamage(dmg);
             BattleEvents.AnnounceDamage(_target, dmg);
             if (data != null) ProgressionRules.AddProfXp(data, style, ProgressionRules.ProfGain(data, hp.IsDead));
             Log("hit for " + dmg.ToString("0.0"));
+
+            bool wasBlocked = _targetBrain != null && _targetBrain.IsBlocking;
+            if (sounds != null) sounds.PlayImpact(style, wasBlocked);
+            if (_targetBrain != null && !wasBlocked) _targetBrain.PlayHurtVoice();
 
             if (_targetBrain != null)
             {
@@ -464,6 +480,12 @@ namespace Combat
             _hitStopUntil = Mathf.Max(_hitStopUntil, Time.time + seconds);
         }
 
+        /// <summary>The attacker's hit just landed on this fighter: a grunt (unless it was blocked or it is dying).</summary>
+        public void PlayHurtVoice()
+        {
+            if (sounds != null && _state != State.Dead && _hp != null && !_hp.IsDead) sounds.PlayHurt(_voicePitch);
+        }
+
         /// <summary>Called by an attacker at the start of its swing. The defender may decide to dodge.</summary>
         public void OnIncomingAttack(FighterBrain attacker, float hitDelay)
         {
@@ -472,13 +494,13 @@ namespace Combat
             // Shield users prefer to block.
             if (_holder != null && _holder.HasShield && Time.time >= _nextBlockAt)
             {
-                float blockChance = Mathf.Clamp01(baseBlockChance + blockPerInsight * Insight());
+                float blockChance = T.BlockChance(Insight());
                 if (Random.value <= blockChance) { StartBlock(attacker.transform.position, hitDelay); return; }
             }
 
             if (Time.time < _nextDodgeAt) return;
 
-            float chance = Mathf.Clamp01(baseDodgeChance + dodgePerInsight * Insight());
+            float chance = T.DodgeChance(Insight());
             if (Random.value > chance) return;
             StartDodge(attacker.transform.position);
         }
@@ -487,7 +509,7 @@ namespace Combat
         {
             _blockFrom = fromPos;
             _blockSeconds = Mathf.Max(0.5f, hitDelay + 0.4f);
-            _nextBlockAt = Time.time + _blockSeconds + blockCooldown;
+            _nextBlockAt = Time.time + _blockSeconds + T.blockCooldown;
             if (_fa != null) _fa.PlayBlock();
             BattleEvents.AnnounceAction(_ai, "Block!");
             EnterState(State.Block);
@@ -522,9 +544,7 @@ namespace Combat
         /// <summary>Multiplier on damage this fighter takes (blocking, or just carrying a shield).</summary>
         public float IncomingDamageFactor()
         {
-            if (_state == State.Block) return blockDamageFactor;
-            if (_holder != null && _holder.HasShield) return 1f - shieldPassiveReduction;
-            return 1f;
+            return T.IncomingFactor(_state == State.Block, _holder != null && _holder.HasShield);
         }
 
         void StartDodge(Vector3 fromPos)
@@ -545,8 +565,9 @@ namespace Combat
             }
             _dodgeDistance = dodgeModelMeters * Scale();
             _dodgeMoved = 0f;
-            _nextDodgeAt = Time.time + dodgeCooldown;
+            _nextDodgeAt = Time.time + T.dodgeCooldown;
 
+            if (sounds != null) sounds.PlayDodge();
             _ma.PlayDodge(null);
             BattleEvents.AnnounceAction(_ai, "Dodge!");
             EnterState(State.Dodge);
@@ -575,7 +596,7 @@ namespace Combat
             if (dir.sqrMagnitude < 1e-6f) dir = -transform.forward;
             dir.Normalize();
 
-            bool resist = _state == State.Attack && Random.value < Ego() * egoPoisePerPoint;
+            bool resist = _state == State.Attack && Random.value < Ego() * T.egoPoisePerPoint;
             float kb = knockbackModelMeters * Scale() * (resist ? 0.4f : 1f);
             _kbDir = dir;
             _kbRemaining = kb;
@@ -609,6 +630,7 @@ namespace Combat
             _state = State.Dead;
             _animator.speed = 1f;
             if (_fa != null) _fa.PrepareDeath();
+            if (sounds != null) sounds.PlayDeath(_voicePitch);
             _ma.PlayDeath();
             Log("dead");
         }

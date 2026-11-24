@@ -8,7 +8,7 @@ using Weaponary;
 
 namespace Game
 {
-    public enum GameState { Title, Placing, Roster, Hub, Fight, Result }
+    public enum GameState { Title, Placing, Roster, Hub, Fight, Result, Book }
 
     /// <summary>
     /// The game loop:  Title -> (place on table) -> Roster (pick 1 of 3) -> Hub -> Death Match -> Result -> Hub / Roster.
@@ -23,6 +23,17 @@ namespace Game
         [Tooltip("Material for the roster floor and tombstone. Assigned by Tools > Kaiju > Game > Create Stage Material.")]
         public Material stageMaterial;
 
+        [Header("UI and stage prefabs (made by Tools > Kaiju > Game > Create Game Prefabs - edit them freely)")]
+        public GameUI gameUiPrefab;
+        public RosterStage rosterStagePrefab;
+        public TombstoneStage tombstoneStagePrefab;
+        [Tooltip("The AR Book (made by Tools > Kaiju > Game > Create Book Prefabs). Leave empty to hide the Book.")]
+        public BookStage bookStagePrefab;
+        [Tooltip("While the book is open, hide the table-top fighter and floor so the (big) book has room. OFF = they stay.")]
+        public bool hideHubWhileBookOpen = true;
+        [Tooltip("Leave empty to keep the title text from the GameUI prefab.")]
+        public string titleOverride = "";
+
         public enum DebugOutcome { None, ForceVictory, ForceDefeat }
 
         [Header("Debug")]
@@ -33,7 +44,6 @@ namespace Game
         public DebugOutcome debugOutcome = DebugOutcome.None;
 
         [Header("Tuning")]
-        public string gameTitle = "ARENA";
         public int rosterSize = 3;
         [Tooltip("Seconds to let the death animation play before showing the result.")]
         public float fightEndDelay = 2.5f;
@@ -49,6 +59,10 @@ namespace Game
         GameUI _ui;
         ARStagePlacer _placer;
         RosterStage _roster;
+        BookStage _book;
+        GameObject _bookObject;
+        GameObject _hiddenStage;
+        bool _bookClosing;
         Canvas _hudCanvas;                 // the scene's existing fight HUD (portraits + health bars)
         SaveData _save;
 
@@ -80,8 +94,16 @@ namespace Game
             _placer = GetComponent<ARStagePlacer>();
             if (_placer == null) _placer = gameObject.AddComponent<ARStagePlacer>();
 
-            _ui = GetComponent<GameUI>();
-            if (_ui == null) _ui = gameObject.AddComponent<GameUI>();
+            if (gameUiPrefab != null)
+            {
+                _ui = Instantiate(gameUiPrefab, transform);
+                _ui.name = "GameUI";
+            }
+            else
+            {
+                _ui = GetComponent<GameUI>();
+                if (_ui == null) _ui = gameObject.AddComponent<GameUI>();   // fallback: build the default menus in code
+            }
 
             // The old one-shot placement script would fight with ours.
             var oldPlacer = FindFirstObjectByType<ARPlaceArena>();
@@ -104,6 +126,11 @@ namespace Game
             _ui.BackClicked += OnBack;
             _ui.DeathMatchClicked += OnDeathMatch;
             _ui.ResultContinueClicked += OnResultContinue;
+            _ui.BookTapped += OnBookTapped;
+            _ui.BookDropped += OnBookDropped;
+            _ui.BookPrevClicked += OnBookPrev;
+            _ui.BookNextClicked += OnBookNext;
+            _ui.BookCloseClicked += OnBookClose;
 
             // Remove any overlay that was saved into a prefab by accident, then add a fresh one.
             var oldOverlay = GetComponent<DeviceDebugOverlay>();
@@ -125,6 +152,11 @@ namespace Game
             _ui.BackClicked -= OnBack;
             _ui.DeathMatchClicked -= OnDeathMatch;
             _ui.ResultContinueClicked -= OnResultContinue;
+            _ui.BookTapped -= OnBookTapped;
+            _ui.BookDropped -= OnBookDropped;
+            _ui.BookPrevClicked -= OnBookPrev;
+            _ui.BookNextClicked -= OnBookNext;
+            _ui.BookCloseClicked -= OnBookClose;
         }
 
         void SetHud(bool on)
@@ -159,7 +191,7 @@ namespace Game
             _save = SaveSystem.Load();
             bool canContinue = _save != null && _save.hasFighter && _save.fighter != null;
             string label = canContinue ? "Continue  (" + _save.fighter.displayName + ")" : "Continue";
-            _ui.ShowTitle(gameTitle, canContinue, label);
+            _ui.ShowTitle(titleOverride, canContinue, label);
         }
 
         void OnNewGame()
@@ -206,8 +238,7 @@ namespace Game
             _state = GameState.Roster;
             SetHud(false);
 
-            var stage = _placer.CreateStage("RosterStage");
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("RosterStage");
             _roster.Init(catalog, showcaseWeapons);
 
             _candidates = new List<FighterData>();
@@ -275,12 +306,138 @@ namespace Game
             SetHud(false);
 
             var fighter = FighterSession.PlayerFighter;
-            var stage = _placer.CreateStage("HubStage");
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("HubStage");
             _roster.Init(catalog, showcaseWeapons);
             _roster.ShowSingle(fighter);
 
             _ui.ShowHub(fighter, _save != null ? _save.totalWins : 0);
+        }
+
+        // ------------------------------------------------------------------ book
+        // The Book icon was dragged onto the table: the book appears where it was dropped. A plain tap puts it in the middle.
+        void OnBookTapped() { PlaceBook(false, default(Vector2)); }
+        void OnBookDropped(Vector2 screenPos) { PlaceBook(true, screenPos); }
+
+        void PlaceBook(bool useScreenPoint, Vector2 screenPos)
+        {
+            if (_state != GameState.Hub) return;
+            var fighter = FighterSession.PlayerFighter;
+            if (fighter == null) return;
+            if (bookStagePrefab == null)
+            {
+                Debug.LogError("[Game] No Book prefab assigned. Run Tools > Kaiju > Game > Create Book Prefabs.", this);
+                return;
+            }
+
+            Vector3 point;
+            if (!useScreenPoint || !_placer.TryGroundPoint(screenPos, out point)) point = _placer.StageOrigin;
+
+            // Facing you: its +Z points away from the camera, like every stage.
+            Vector3 dir = Vector3.forward;
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                dir = point - cam.transform.position;
+                dir.y = 0f;
+                if (dir.sqrMagnitude < 1e-4f) { dir = cam.transform.forward; dir.y = 0f; }
+                if (dir.sqrMagnitude < 1e-4f) dir = Vector3.forward;
+            }
+
+            var go = _placer.InstantiateAt(bookStagePrefab.gameObject, point, Quaternion.LookRotation(dir.normalized, Vector3.up));
+            var book = go != null ? go.GetComponent<BookStage>() : null;
+            if (book == null)
+            {
+                if (go != null) Destroy(go);
+                Debug.LogError("[Game] The Book prefab has no BookStage component on its root (or the table is not placed yet).", this);
+                return;
+            }
+
+            _bookObject = go;
+            _book = book;
+            _hiddenStage = null;
+            if (hideHubWhileBookOpen && _placer.CurrentStage != null)
+            {
+                _hiddenStage = _placer.CurrentStage;
+                _hiddenStage.SetActive(false);
+            }
+
+            _state = GameState.Book;
+            _bookClosing = false;
+            _book.Opened += RefreshBookUi;
+            _book.PageChanged += RefreshBookUi;
+            _book.Failed += OnBookFailed;
+            _ui.ShowBook("Opening the book...", false, false);
+
+            if (debugLogs) Debug.Log("[Game] Book placed at " + point + ". Fallen: " + (_save != null && _save.fallen != null ? _save.fallen.Count : 0));
+            _book.Open(fighter, _save != null ? _save.fallen : null);
+        }
+
+        void RefreshBookUi()
+        {
+            if (_state != GameState.Book || _book == null) return;
+            _ui.SetBookControls(_book.PageLabel, _book.CanTurnBack, _book.CanTurnForward);
+        }
+
+        void OnBookPrev()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _book.TurnBackward();
+        }
+
+        void OnBookNext()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _book.TurnForward();
+        }
+
+        void OnBookClose()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _bookClosing = true;
+            _ui.SetBookControls("", false, false);
+            _book.Close(() =>
+            {
+                if (_state != GameState.Book) return;
+                LeaveBook();
+                BackToHub();
+            });
+        }
+
+        void OnBookFailed()
+        {
+            if (_state != GameState.Book) return;
+            Debug.LogError("[Game] The Book could not be opened. Check the Console for [Book] messages.", this);
+            LeaveBook();
+            BackToHub();
+        }
+
+        // The hub stage was only hidden while the book was open, so just show it and the hub menu again.
+        void BackToHub()
+        {
+            _state = GameState.Hub;
+            _ui.ShowHub(FighterSession.PlayerFighter, _save != null ? _save.totalWins : 0);
+        }
+
+        void LeaveBook()
+        {
+            if (_book != null)
+            {
+                _book.Opened -= RefreshBookUi;
+                _book.PageChanged -= RefreshBookUi;
+                _book.Failed -= OnBookFailed;
+            }
+            _book = null;
+            _bookClosing = false;
+            // Dismiss lets the closing sound finish before the book is removed.
+            if (_bookObject != null)
+            {
+                var closing = _bookObject.GetComponent<BookStage>();
+                if (closing != null) closing.Dismiss();
+                else Destroy(_bookObject);
+            }
+            _bookObject = null;
+            if (_hiddenStage != null) _hiddenStage.SetActive(true);
+            _hiddenStage = null;
         }
 
         void OnDeathMatch()
@@ -353,6 +510,7 @@ namespace Game
 
             var fighter = FighterSession.PlayerFighter;
             if (_save == null) _save = new SaveData();
+            fighter.fights++;
 
             if (playerWon)
             {
@@ -382,12 +540,21 @@ namespace Game
                 // Permadeath: the fighter is gone, and gets a tombstone.
                 var fallen = fighter;
                 FighterSession.PlayerFighter = null;
+                if (_save.fallen == null) _save.fallen = new List<FallenFighter>();
+                _save.fallen.Add(new FallenFighter(fallen, _lastEnemy));   // the graveyard pages of the Book
                 _save.hasFighter = false;
                 _save.fighter = new FighterData();
                 SaveSystem.Save(_save);
 
-                var stage = _placer.CreateStage("TombstoneStage");
-                if (stage != null) stage.AddComponent<TombstoneStage>().Build(fallen);
+                var stage = tombstoneStagePrefab != null
+                    ? _placer.InstantiateStage(tombstoneStagePrefab.gameObject)
+                    : _placer.CreateStage("TombstoneStage");
+                if (stage != null)
+                {
+                    var tomb = stage.GetComponent<TombstoneStage>();
+                    if (tomb == null) tomb = stage.AddComponent<TombstoneStage>();
+                    tomb.Build(fallen, _lastEnemy);
+                }
 
                 _resultToHub = false;
                 _ui.ShowResult("FALLEN", new Color(0.92f, 0.30f, 0.30f),
@@ -396,12 +563,23 @@ namespace Game
             }
         }
 
+        // A roster/hub/result stage: from the prefab if one is assigned, otherwise built in code.
+        RosterStage NewRosterStage(string stageName)
+        {
+            GameObject stage = rosterStagePrefab != null
+                ? _placer.InstantiateStage(rosterStagePrefab.gameObject)
+                : _placer.CreateStage(stageName);
+            if (stage == null) return null;
+            var rs = stage.GetComponent<RosterStage>();
+            if (rs == null) rs = stage.AddComponent<RosterStage>();
+            return rs;
+        }
+
         // The winner standing on the table (re-uses the hub display).
         void ShowFighterStage(FighterData fighter)
         {
-            var stage = _placer.CreateStage("ResultStage");
-            if (stage == null) return;
-            _roster = stage.AddComponent<RosterStage>();
+            _roster = NewRosterStage("ResultStage");
+            if (_roster == null) return;
             _roster.Init(catalog, showcaseWeapons);
             _roster.ShowSingle(fighter);
         }

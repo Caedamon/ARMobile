@@ -16,7 +16,10 @@ namespace Game
     public sealed class GameUI : MonoBehaviour
     {
         public event Action ContinueClicked, NewGameClicked, PlaceInFrontClicked, PickClicked, BackClicked,
-                            DeathMatchClicked, ResultContinueClicked;
+                            DeathMatchClicked, ResultContinueClicked,
+                            BookTapped, BookPrevClicked, BookNextClicked, BookCloseClicked;
+        /// <summary>The Book icon was dragged onto the table and let go at this screen position.</summary>
+        public event Action<Vector2> BookDropped;
 
         // colours
         static readonly Color Dim      = new Color(0.03f, 0.04f, 0.07f, 0.62f);
@@ -28,50 +31,104 @@ namespace Game
         static readonly Color BarFill  = new Color(0.96f, 0.76f, 0.26f, 1f);
         static readonly Color SoftWhite = new Color(0.92f, 0.94f, 0.98f, 1f);
 
-        Canvas _canvas;
-        CanvasScaler _scaler;
-        RectTransform _safe;
+        [SerializeField] Canvas _canvas;
+        [SerializeField] CanvasScaler _scaler;
+        [SerializeField] RectTransform _safe;
         Rect _lastSafe;
 
-        GameObject _titlePanel, _placePanel, _rosterPanel, _hubPanel, _resultPanel;
+        [SerializeField] GameObject _titlePanel, _placePanel, _rosterPanel, _hubPanel, _resultPanel;
 
         // title
-        TMP_Text _titleText;
-        Button _continueBtn;
-        TMP_Text _continueLabel;
+        [SerializeField] TMP_Text _titleText;
+        [SerializeField] Button _continueBtn;
+        [SerializeField] TMP_Text _continueLabel;
+        [SerializeField] Button _newGameButton, _placeInFrontButton, _pickButton, _backButton, _deathMatchButton, _resultButton;
 
         // roster
-        GameObject _card, _pickBtn, _backBtn;
-        TMP_Text _cardName, _cardTier, _cardStyle;
-        readonly RectTransform[] _statFill = new RectTransform[4];
-        readonly TMP_Text[] _statValue = new TMP_Text[4];
+        [SerializeField] GameObject _card, _pickBtn, _backBtn;
+        [SerializeField] TMP_Text _cardName, _cardTier, _cardStyle;
+        [SerializeField] RectTransform[] _statFill = new RectTransform[4];
+        [SerializeField] TMP_Text[] _statValue = new TMP_Text[4];
         static readonly string[] StatNames = { "MIGHT", "EGO", "EDUCATION", "INSIGHT" };
 
         // hub
-        TMP_Text _hubName, _hubInfo, _hubProf;
+        [SerializeField] TMP_Text _hubName, _hubInfo, _hubProf;
 
         // result
-        TMP_Text _resultTitle, _resultSub, _resultBtnLabel;
+        [SerializeField] TMP_Text _resultTitle, _resultSub, _resultBtnLabel;
+
+        // book: an icon on the hub panel that you drag onto the table; the panel holds Back / Close / Next
+        [SerializeField] GameObject _bookPanel;
+        [SerializeField] RectTransform _bookIcon, _bookGhost;
+        [SerializeField] Button _bookPrevButton, _bookNextButton, _bookCloseButton;
+        [SerializeField] TMP_Text _bookLabel;
+
+        // stat info: tap a stat on the roster card to see what it does (edit the wording in the Inspector)
+        [SerializeField] RectTransform[] _statTap = new RectTransform[4];
+        [SerializeField] GameObject _statPopup;
+        [SerializeField] TMP_Text _statPopupTitle, _statPopupBody;
+        [SerializeField, TextArea(3, 8)] string[] _statInfo = DefaultStatInfo();
+
+        // settings: music + effects volume. The sliders are read from raw touch/mouse input like the buttons,
+        // so they work on a phone even if the EventSystem misses the touch.
+        [SerializeField] GameObject _settingsPanel;
+        [SerializeField] Button _settingsCloseButton, _settingsTitleButton, _settingsHubButton;
+        [SerializeField] RectTransform _musicTrack, _musicFill, _musicHandle, _fxTrack, _fxFill, _fxHandle;
+        [SerializeField] TMP_Text _musicValue, _fxValue;
+
+        static string[] DefaultStatInfo()
+        {
+            return new[]
+            {
+                "Raw strength and toughness.\n\nEvery point makes each hit land about 5% harder AND adds 16 hit points to the health bar. Might decides how much punishment a fighter can dish out and soak up.",
+                "Stubborn pride and stage presence.\n\nA big ego keeps swinging when hit: every point gives a 4% chance to shrug off most of the knockback in the middle of an attack instead of being thrown off balance. Proud fighters also lean toward picking up a shield.",
+                "Book smarts and training.\n\nEducated fighters learn faster: every point adds about 5% more XP from a win and speeds up weapon proficiency by roughly 6%. It does nothing in the swing itself; it pays off over a whole career.",
+                "Reading the fight.\n\nEvery point sharpens crit chance (+0.5%) and crit damage (+1%), attack tempo (+2%), dodge (+2.5%) and shield-block (+3%) chances, shortens the pause between swings and lets a fighter spot loose weapons from further away. Clever fighters like dual wielding.",
+            };
+        }
 
         // ------------------------------------------------------------------ build
         void Awake()
         {
             _instance = this;
             EnsureEventSystem();
+
+            // Normal case: the menus come from the GameUI prefab (edit them there).
+            // Fallback: if this component has no menus yet, build the default ones in code.
+            if (_titlePanel == null) BuildAll();
+            if (_bookPanel == null || _bookIcon == null) AddBookUi();   // an older GameUI prefab without the Book icon/screen: add it
+            if (!HasStatInfoUi()) AddStatInfoUi();                       // same for the stat info popup
+            if (_settingsPanel == null) AddSettingsUi();                 // and the Settings screen
+
+            WireButtons();
+            HideAll();
+        }
+
+        /// <summary>
+        /// Builds the default menus. Used by Tools > Kaiju > Game > Create Game Prefabs (to make the prefab)
+        /// and as a fallback at runtime. Panels stay visible here so you can see and edit them in the prefab.
+        /// </summary>
+        public void BuildAll()
+        {
             BuildCanvas();
             BuildTitle();
             BuildPlace();
             BuildRoster();
             BuildHub();
             BuildResult();
-            HideAll();
+            AddBookUi();
+            AddStatInfoUi();
+            AddSettingsUi();
         }
 
         void Update()
         {
             if (Screen.safeArea != _lastSafe) ApplySafeArea();
             AdaptScaler();
+            HandleSettingsSliders();
+            HandleStatTaps();
             HandleDirectTaps();
+            HandleBookDrag();
         }
 
         // The layout is designed for portrait (1080x1920). Portrait: scale by width. Landscape: scale by height,
@@ -93,7 +150,7 @@ namespace Game
 
         public static bool IsPointOverButton(Vector2 screenPos)
         {
-            return _instance != null && _instance.ButtonAt(screenPos) != null;
+            return _instance != null && (_instance.ButtonAt(screenPos) != null || _instance.IsStatUiAt(screenPos) || _instance.SettingsOpen);
         }
 
         void Raise(Action handler)
@@ -103,14 +160,40 @@ namespace Game
             if (handler != null) handler();
         }
 
+        void WireButtons()
+        {
+            Wire(_continueBtn, () => Raise(ContinueClicked));
+            Wire(_newGameButton, () => Raise(NewGameClicked));
+            Wire(_placeInFrontButton, () => Raise(PlaceInFrontClicked));
+            Wire(_pickButton, () => Raise(PickClicked));
+            Wire(_backButton, () => Raise(BackClicked));
+            Wire(_deathMatchButton, () => Raise(DeathMatchClicked));
+            Wire(_resultButton, () => Raise(ResultContinueClicked));
+            Wire(_bookPrevButton, () => Raise(BookPrevClicked));
+            Wire(_bookNextButton, () => Raise(BookNextClicked));
+            Wire(_bookCloseButton, () => Raise(BookCloseClicked));
+            Wire(_settingsTitleButton, OpenSettings);
+            Wire(_settingsHubButton, OpenSettings);
+            Wire(_settingsCloseButton, CloseSettings);
+        }
+
+        static void Wire(Button b, UnityEngine.Events.UnityAction action)
+        {
+            if (b == null) return;
+            b.onClick.RemoveAllListeners();   // only removes listeners added from code
+            b.onClick.AddListener(action);
+        }
+
         Button ButtonAt(Vector2 screenPos)
         {
             if (_canvas == null) return null;
             var buttons = _canvas.GetComponentsInChildren<Button>(false);
+            bool modal = SettingsOpen;   // while Settings is open only its own buttons work
             for (int i = buttons.Length - 1; i >= 0; i--)
             {
                 var b = buttons[i];
                 if (!b.isActiveAndEnabled || !b.interactable) continue;
+                if (modal && !b.transform.IsChildOf(_settingsPanel.transform)) continue;
                 if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)b.transform, screenPos, null)) return b;
             }
             return null;
@@ -119,6 +202,7 @@ namespace Game
         void HandleDirectTaps()
         {
             Vector2 pos;
+            if (_popupConsumed) { _pressedButton = null; return; }   // this tap only closed / opened the stat popup
             if (PointerPressed(out pos)) _pressedButton = ButtonAt(pos);
 
             if (_pressedButton != null && PointerReleased(out pos))
@@ -180,7 +264,7 @@ namespace Game
 
             _safe = NewRect("SafeArea", go.transform);
             Stretch(_safe);
-            ApplySafeArea();
+            if (Application.isPlaying) ApplySafeArea();
         }
 
         void ApplySafeArea()
@@ -208,11 +292,10 @@ namespace Game
             Anchor(sub.rectTransform, 0.5f, 0.64f, new Vector2(1000f, 80f));
 
             _continueBtn = NewButton(rt, "ContinueButton", "Continue", 0.5f, 0.42f, new Vector2(720f, 140f), Green, out _continueLabel);
-            _continueBtn.onClick.AddListener(() => Raise(ContinueClicked));
 
             TMP_Text l;
             var nb = NewButton(rt, "NewGameButton", "New Game", 0.5f, 0.31f, new Vector2(720f, 140f), Blue, out l);
-            nb.onClick.AddListener(() => Raise(NewGameClicked));
+            _newGameButton = nb;
         }
 
         void BuildPlace()
@@ -228,7 +311,7 @@ namespace Game
 
             TMP_Text l;
             var b = NewButton(rt, "PlaceInFrontButton", "Place in front of me", 0.5f, 0.13f, new Vector2(720f, 120f), Grey, out l);
-            b.onClick.AddListener(() => Raise(PlaceInFrontClicked));
+            _placeInFrontButton = b;
         }
 
         void BuildRoster()
@@ -277,11 +360,11 @@ namespace Game
             // ---- buttons
             TMP_Text l;
             var pick = NewButton(rt, "PickButton", "Pick this fighter", 0.5f, 0.16f, new Vector2(760f, 140f), Green, out l);
-            pick.onClick.AddListener(() => Raise(PickClicked));
+            _pickButton = pick;
             _pickBtn = pick.gameObject;
 
             var back2 = NewButton(rt, "BackButton", "Back to selection", 0.5f, 0.075f, new Vector2(760f, 110f), Grey, out l);
-            back2.onClick.AddListener(() => Raise(BackClicked));
+            _backButton = back2;
             _backBtn = back2.gameObject;
         }
 
@@ -299,7 +382,7 @@ namespace Game
 
             TMP_Text l;
             var dm = NewButton(rt, "DeathMatchButton", "Death Match", 0.5f, 0.24f, new Vector2(760f, 140f), Green, out l);
-            dm.onClick.AddListener(() => Raise(DeathMatchClicked));
+            _deathMatchButton = dm;
 
             var duel = NewButton(rt, "DuelButton", "Duel  (coming soon)", 0.5f, 0.145f, new Vector2(760f, 110f), Grey, out l);
             duel.interactable = false;
@@ -322,7 +405,7 @@ namespace Game
             Stretch(_resultSub.rectTransform);
 
             var b = NewButton(rt, "ResultButton", "Continue", 0.5f, 0.10f, new Vector2(760f, 140f), Blue, out _resultBtnLabel);
-            b.onClick.AddListener(() => Raise(ResultContinueClicked));
+            _resultButton = b;
         }
 
         // ------------------------------------------------------------------ screens
@@ -333,12 +416,18 @@ namespace Game
             _rosterPanel.SetActive(false);
             _hubPanel.SetActive(false);
             _resultPanel.SetActive(false);
+            if (_bookPanel != null) _bookPanel.SetActive(false);
+            if (_bookGhost != null) _bookGhost.gameObject.SetActive(false);
+            if (_statPopup != null) _statPopup.SetActive(false);
+            if (_settingsPanel != null) _settingsPanel.SetActive(false);
+            _dragSlider = -1;
+            _bookDragging = false;
         }
 
         public void ShowTitle(string title, bool canContinue, string continueLabel)
         {
             HideAll();
-            _titleText.text = title;
+            if (!string.IsNullOrEmpty(title)) _titleText.text = title;   // empty = keep the text from the prefab
             _continueBtn.interactable = canContinue;
             _continueLabel.text = continueLabel;
             _titlePanel.SetActive(true);
@@ -378,6 +467,7 @@ namespace Game
 
         public void HideRosterCard()
         {
+            if (_statPopup != null) _statPopup.SetActive(false);
             _card.SetActive(false);
             _pickBtn.SetActive(false);
             _backBtn.SetActive(false);
@@ -410,6 +500,400 @@ namespace Game
             _resultSub.text = subtitle;
             _resultBtnLabel.text = buttonLabel;
             _resultPanel.SetActive(true);
+        }
+
+        // ------------------------------------------------------------------ book
+        /// <summary>
+        /// Adds the Book icon (on the hub panel, dragged onto the table), its drag ghost and the Book screen
+        /// (Back / Close / Next). Only creates what is missing, so it never touches parts you already have.
+        /// Used by Tools > Kaiju > Game > Create Book Prefabs.
+        /// </summary>
+        public void AddBookUi()
+        {
+            if (_safe == null) return;
+
+            // The first Book version had a plain button on the hub. The Book is now an icon you drag onto the table.
+            if (_hubPanel != null)
+            {
+                var old = _hubPanel.transform.Find("BookButton");
+                if (old != null) DestroyImmediate(old.gameObject);
+            }
+
+            if (_bookIcon == null && _hubPanel != null)
+            {
+                var icon = NewImage(_hubPanel.transform, "BookIcon", new Color(0.45f, 0.28f, 0.14f, 1f), true);
+                Anchor(icon.rectTransform, 0.84f, 0.50f, new Vector2(220f, 260f));
+                _bookIcon = icon.rectTransform;
+                var label = NewText(icon.transform, "Label", "BOOK", 56f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
+                Frac(label.rectTransform, 0f, 0.40f, 1f, 0.90f);
+                var hint = NewText(icon.transform, "Hint", "drag onto\nthe table", 30f, SoftWhite, TextAlignmentOptions.Center);
+                Frac(hint.rectTransform, 0f, 0.05f, 1f, 0.42f);
+            }
+
+            if (_bookGhost == null)
+            {
+                var ghost = NewImage(_safe, "BookDragGhost", new Color(0.45f, 0.28f, 0.14f, 0.85f), false);
+                Anchor(ghost.rectTransform, 0.5f, 0.5f, new Vector2(180f, 220f));
+                var gl = NewText(ghost.transform, "Label", "BOOK", 48f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
+                Stretch(gl.rectTransform);
+                _bookGhost = ghost.rectTransform;
+                ghost.gameObject.SetActive(false);
+            }
+
+            if (_bookPanel == null)
+            {
+                _bookPanel = NewPanel("BookPanel", Color.clear, false);
+                var rt = _bookPanel.transform;
+                TMP_Text l;
+
+                _bookLabel = NewText(rt, "BookPageLabel", "", 40f, SoftWhite, TextAlignmentOptions.Center);
+                Anchor(_bookLabel.rectTransform, 0.5f, 0.16f, new Vector2(1000f, 70f));
+
+                _bookPrevButton = NewButton(rt, "BookPrevButton", "< Back", 0.17f, 0.075f, new Vector2(300f, 120f), Grey, out l);
+                _bookCloseButton = NewButton(rt, "BookCloseButton", "Close", 0.5f, 0.075f, new Vector2(300f, 120f), Blue, out l);
+                _bookNextButton = NewButton(rt, "BookNextButton", "Next >", 0.83f, 0.075f, new Vector2(300f, 120f), Green, out l);
+            }
+        }
+
+        // ------------------------------------------------------------------ settings (music / effects volume)
+        public bool SettingsOpen { get { return _settingsPanel != null && _settingsPanel.activeSelf; } }
+
+        public bool HasSettingsUi()
+        {
+            return _settingsPanel != null && _settingsCloseButton != null && _musicTrack != null && _musicFill != null &&
+                   _musicHandle != null && _fxTrack != null && _fxFill != null && _fxHandle != null &&
+                   (_titlePanel == null || _settingsTitleButton != null) && (_hubPanel == null || _settingsHubButton != null);
+        }
+
+        /// <summary>
+        /// Adds the Settings screen (Music and Effects sliders + Close) and a Settings button on the title screen and on the hub.
+        /// Only creates what is missing. Used by Tools > Kaiju > Audio > Set Up Audio, and as a run-time fallback.
+        /// </summary>
+        public void AddSettingsUi()
+        {
+            if (_safe == null) return;
+            TMP_Text l;
+
+            if (_settingsTitleButton == null && _titlePanel != null)
+                _settingsTitleButton = NewButton(_titlePanel.transform, "SettingsButton", "Settings", 0.5f, 0.20f, new Vector2(720f, 120f), Grey, out l);
+
+            if (_settingsHubButton == null && _hubPanel != null)
+            {
+                _settingsHubButton = NewButton(_hubPanel.transform, "SettingsButton", "Settings", 0.16f, 0.50f, new Vector2(240f, 110f), Grey, out l);
+                l.fontSize = 36f;
+            }
+
+            if (_settingsPanel == null)
+            {
+                _settingsPanel = NewPanel("SettingsPanel", new Color(0.03f, 0.04f, 0.07f, 0.9f), true);
+                var rt = _settingsPanel.transform;
+
+                var title = NewText(rt, "SettingsTitle", "SETTINGS", 100f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
+                Anchor(title.rectTransform, 0.5f, 0.80f, new Vector2(1000f, 150f));
+
+                BuildSliderRow(rt, "Music", "Music", 0.62f, out _musicTrack, out _musicFill, out _musicHandle, out _musicValue);
+                BuildSliderRow(rt, "Effects", "Effects", 0.45f, out _fxTrack, out _fxFill, out _fxHandle, out _fxValue);
+
+                var hint = NewText(rt, "SettingsHint", "Drag the sliders", 34f, SoftWhite, TextAlignmentOptions.Center);
+                Anchor(hint.rectTransform, 0.5f, 0.33f, new Vector2(1000f, 60f));
+
+                _settingsCloseButton = NewButton(rt, "SettingsCloseButton", "Close", 0.5f, 0.20f, new Vector2(720f, 130f), Blue, out l);
+                _settingsPanel.SetActive(false);
+            }
+        }
+
+        // One labelled slider: "Music ............ 70%" with a tall invisible track (easy to hit with a thumb) holding a thin bar, a fill and a handle.
+        void BuildSliderRow(Transform parent, string name, string label, float y, out RectTransform track, out RectTransform fill,
+                            out RectTransform handle, out TMP_Text value)
+        {
+            var lab = NewText(parent, name + "Label", label, 56f, Color.white, TextAlignmentOptions.Left, FontStyles.Bold);
+            Frac(lab.rectTransform, 0.10f, y, 0.60f, y + 0.06f);
+
+            value = NewText(parent, name + "Value", "70%", 52f, BarFill, TextAlignmentOptions.Right, FontStyles.Bold);
+            Frac(value.rectTransform, 0.62f, y, 0.90f, y + 0.06f);
+
+            var trackImg = NewImage(parent, name + "Slider", new Color(1f, 1f, 1f, 0f), true);   // the touch area
+            Frac(trackImg.rectTransform, 0.10f, y - 0.075f, 0.90f, y - 0.005f);
+            track = trackImg.rectTransform;
+
+            var bar = NewImage(track, "Bar", BarBack, false);
+            Frac(bar.rectTransform, 0f, 0.38f, 1f, 0.62f);
+
+            var fillImg = NewImage(bar.transform, "Fill", BarFill, false);
+            Frac(fillImg.rectTransform, 0f, 0f, 0.7f, 1f);
+            fill = fillImg.rectTransform;
+
+            var h = NewImage(track, "Handle", Color.white, false);
+            h.rectTransform.anchorMin = new Vector2(0.7f, 0.5f);
+            h.rectTransform.anchorMax = new Vector2(0.7f, 0.5f);
+            h.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            h.rectTransform.anchoredPosition = Vector2.zero;
+            h.rectTransform.sizeDelta = new Vector2(64f, 90f);
+            handle = h.rectTransform;
+        }
+
+        void OpenSettings()
+        {
+            if (_settingsPanel == null) return;
+            RefreshSettingsUi();
+            _settingsPanel.transform.SetAsLastSibling();
+            _settingsPanel.SetActive(true);
+            _dragSlider = -1;
+        }
+
+        void CloseSettings()
+        {
+            if (_settingsPanel == null) return;
+            _settingsPanel.SetActive(false);
+            _dragSlider = -1;
+            GameAudio.SaveNow();
+        }
+
+        void RefreshSettingsUi()
+        {
+            SetSliderVisual(_musicFill, _musicHandle, _musicValue, GameAudio.MusicSlider);
+            SetSliderVisual(_fxFill, _fxHandle, _fxValue, GameAudio.EffectsSlider);
+        }
+
+        static void SetSliderVisual(RectTransform fill, RectTransform handle, TMP_Text label, float v)
+        {
+            if (fill != null) fill.anchorMax = new Vector2(v, 1f);
+            if (handle != null)
+            {
+                handle.anchorMin = new Vector2(v, 0.5f);
+                handle.anchorMax = new Vector2(v, 0.5f);
+                handle.anchoredPosition = Vector2.zero;
+            }
+            if (label != null) label.text = Mathf.RoundToInt(v * 100f) + "%";
+        }
+
+        int _dragSlider = -1;   // 0 = music, 1 = effects, -1 = none
+
+        void HandleSettingsSliders()
+        {
+            if (!SettingsOpen) { _dragSlider = -1; return; }
+            Vector2 pos;
+
+            if (_dragSlider < 0)
+            {
+                if (!PointerPressed(out pos)) return;
+                if (_musicTrack != null && RectTransformUtility.RectangleContainsScreenPoint(_musicTrack, pos, null)) _dragSlider = 0;
+                else if (_fxTrack != null && RectTransformUtility.RectangleContainsScreenPoint(_fxTrack, pos, null)) _dragSlider = 1;
+                if (_dragSlider >= 0) SetSliderFromPointer(_dragSlider, pos);
+                return;
+            }
+
+            bool released = PointerReleased(out pos);
+            if (!released && !PointerHeld(out pos)) { EndSliderDrag(); return; }   // touch was cancelled
+            SetSliderFromPointer(_dragSlider, pos);
+            if (released) EndSliderDrag();
+        }
+
+        void SetSliderFromPointer(int which, Vector2 screenPos)
+        {
+            var track = which == 0 ? _musicTrack : _fxTrack;
+            if (track == null) return;
+            Vector2 local;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(track, screenPos, null, out local)) return;
+            float v = Mathf.Clamp01(Mathf.InverseLerp(track.rect.xMin, track.rect.xMax, local.x));
+            if (which == 0) GameAudio.SetMusicSlider(v); else GameAudio.SetEffectsSlider(v);
+            RefreshSettingsUi();
+        }
+
+        void EndSliderDrag()
+        {
+            int was = _dragSlider;
+            _dragSlider = -1;
+            GameAudio.SaveNow();
+            if (was == 1) GameAudio.PlayPreview();   // let go of Effects: play a sample so you can hear the level
+        }
+
+        // ------------------------------------------------------------------ stat info popup
+        /// <summary>
+        /// Adds invisible tap areas over the four stat rows of the roster card, a hint under the card and the popup itself.
+        /// Only creates what is missing. Used by Tools > Kaiju > Game > Add Stat Info Popup, and as a run-time fallback.
+        /// </summary>
+        public void AddStatInfoUi()
+        {
+            if (_safe == null || _card == null) return;
+
+            if (_statTap == null || _statTap.Length != 4) _statTap = new RectTransform[4];
+            for (int i = 0; i < 4; i++)
+            {
+                if (_statTap[i] != null) continue;
+                float top = 0.59f - i * 0.145f;
+                float bottom = top - 0.125f;
+                var tap = NewImage(_card.transform, "StatTap" + i, new Color(1f, 1f, 1f, 0f), true);
+                Frac(tap.rectTransform, 0.03f, bottom, 0.97f, top);
+                _statTap[i] = tap.rectTransform;
+            }
+
+            if (_card.transform.Find("StatHint") == null)
+            {
+                var hint = NewText(_card.transform, "StatHint", "Tap a stat to see what it does", 30f, SoftWhite, TextAlignmentOptions.Center);
+                Frac(hint.rectTransform, 0.05f, -0.075f, 0.95f, 0f);
+            }
+
+            if (_statPopup == null)
+            {
+                var dim = NewImage(_safe, "StatPopup", new Color(0.02f, 0.03f, 0.05f, 0.72f), true);
+                Stretch(dim.rectTransform);
+                _statPopup = dim.gameObject;
+
+                var box = NewImage(dim.transform, "Box", new Color(0.10f, 0.12f, 0.18f, 0.97f), false);
+                Anchor(box.rectTransform, 0.5f, 0.5f, new Vector2(900f, 640f));
+
+                _statPopupTitle = NewText(box.transform, "Title", "MIGHT", 68f, BarFill, TextAlignmentOptions.Center, FontStyles.Bold);
+                Frac(_statPopupTitle.rectTransform, 0.05f, 0.82f, 0.95f, 0.97f);
+
+                _statPopupBody = NewText(box.transform, "Body", "", 40f, Color.white, TextAlignmentOptions.TopLeft);
+                _statPopupBody.enableAutoSizing = true;
+                _statPopupBody.fontSizeMin = 24f;
+                _statPopupBody.fontSizeMax = 40f;
+                Frac(_statPopupBody.rectTransform, 0.07f, 0.14f, 0.93f, 0.80f);
+
+                var close = NewText(box.transform, "CloseHint", "tap anywhere to close", 30f, SoftWhite, TextAlignmentOptions.Center);
+                Frac(close.rectTransform, 0.05f, 0.02f, 0.95f, 0.12f);
+
+                dim.gameObject.SetActive(false);
+            }
+        }
+
+        bool HasStatInfoUi()
+        {
+            if (_statPopup == null || _statTap == null || _statTap.Length != 4) return false;
+            for (int i = 0; i < 4; i++) if (_statTap[i] == null) return false;
+            return true;
+        }
+
+        bool _popupConsumed;
+        int _consumedFrame = -1;
+
+        bool IsStatUiAt(Vector2 pos)
+        {
+            if (_consumedFrame == Time.frameCount) return true;
+            if (_statPopup != null && _statPopup.activeSelf) return true;
+            if (_card != null && _card.activeInHierarchy && _statTap != null)
+                foreach (var r in _statTap)
+                    if (r != null && RectTransformUtility.RectangleContainsScreenPoint(r, pos, null)) return true;
+            return false;
+        }
+
+        // Touch / click a stat row: show what the stat does. Touch / click anywhere else while it is showing: close it.
+        void HandleStatTaps()
+        {
+            _popupConsumed = false;
+            Vector2 pos;
+            if (!PointerPressed(out pos)) return;
+
+            if (_statPopup != null && _statPopup.activeSelf)
+            {
+                _statPopup.SetActive(false);
+                _popupConsumed = true;
+                _consumedFrame = Time.frameCount;
+                return;
+            }
+
+            if (_card == null || !_card.activeInHierarchy || _statTap == null) return;
+            for (int i = 0; i < _statTap.Length; i++)
+            {
+                if (_statTap[i] == null) continue;
+                if (RectTransformUtility.RectangleContainsScreenPoint(_statTap[i], pos, null))
+                {
+                    ShowStatInfo(i);
+                    _popupConsumed = true;
+                    _consumedFrame = Time.frameCount;
+                    return;
+                }
+            }
+        }
+
+        void ShowStatInfo(int i)
+        {
+            if (_statPopup == null) return;
+            string[] fallback = DefaultStatInfo();
+            string text = (_statInfo != null && i < _statInfo.Length && !string.IsNullOrEmpty(_statInfo[i])) ? _statInfo[i] : fallback[i];
+            if (_statPopupTitle != null) _statPopupTitle.text = StatNames[i];
+            if (_statPopupBody != null) _statPopupBody.text = text;
+            _statPopup.transform.SetAsLastSibling();
+            _statPopup.SetActive(true);
+        }
+
+        // ------------------------------------------------------------------ dragging the Book icon onto the table
+        // Done from raw touch/mouse input (like the buttons), so it works even if the EventSystem misses it.
+        bool _bookDragging;
+        Vector2 _bookDragStart;
+        float _bookDragMoved;
+
+        void HandleBookDrag()
+        {
+            if (_bookIcon == null || _hubPanel == null) return;
+            Vector2 pos;
+
+            if (!_bookDragging)
+            {
+                if (_hubPanel.activeInHierarchy && !SettingsOpen && PointerPressed(out pos) &&
+                    RectTransformUtility.RectangleContainsScreenPoint(_bookIcon, pos, null))
+                {
+                    _bookDragging = true;
+                    _bookDragStart = pos;
+                    _bookDragMoved = 0f;
+                    ShowGhost(pos);
+                }
+                return;
+            }
+
+            bool released = PointerReleased(out pos);
+            if (!released && !PointerHeld(out pos))
+            {
+                // the touch was cancelled
+                _bookDragging = false;
+                if (_bookGhost != null) _bookGhost.gameObject.SetActive(false);
+                return;
+            }
+
+            _bookDragMoved = Mathf.Max(_bookDragMoved, (pos - _bookDragStart).magnitude);
+            ShowGhost(pos);
+
+            if (released)
+            {
+                _bookDragging = false;
+                if (_bookGhost != null) _bookGhost.gameObject.SetActive(false);
+                if (_bookDragMoved < 25f) Raise(BookTapped);        // a plain tap: put the book at the default spot
+                else if (BookDropped != null) BookDropped(pos);
+            }
+        }
+
+        void ShowGhost(Vector2 pos)
+        {
+            if (_bookGhost == null) return;
+            _bookGhost.gameObject.SetActive(true);
+            _bookGhost.position = new Vector3(pos.x, pos.y, 0f);   // overlay canvas: screen pixels
+        }
+
+        static bool PointerHeld(out Vector2 pos)
+        {
+            pos = default(Vector2);
+            var ts = Touchscreen.current;
+            if (ts != null && ts.primaryTouch.press.isPressed) { pos = ts.primaryTouch.position.ReadValue(); return true; }
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.isPressed) { pos = mouse.position.ReadValue(); return true; }
+            return false;
+        }
+
+        public void ShowBook(string pageLabel, bool canGoBack, bool canGoForward)
+        {
+            HideAll();
+            if (_bookPanel == null) return;
+            _bookPanel.SetActive(true);
+            SetBookControls(pageLabel, canGoBack, canGoForward);
+        }
+
+        public void SetBookControls(string pageLabel, bool canGoBack, bool canGoForward)
+        {
+            if (_bookLabel != null) _bookLabel.text = pageLabel;
+            if (_bookPrevButton != null) _bookPrevButton.interactable = canGoBack;
+            if (_bookNextButton != null) _bookNextButton.interactable = canGoForward;
         }
 
         // ------------------------------------------------------------------ builders

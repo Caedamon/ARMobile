@@ -4,61 +4,63 @@ using UnityEngine;
 
 namespace Game
 {
-    /// <summary>A small tombstone built from primitives (no art needed), rising out of the table.</summary>
+    /// <summary>
+    /// The tombstone shown when your fighter dies. Everything visual lives in the TombstoneStage prefab
+    /// (shapes, materials, text positions and sizes). This script only fills in the words and plays the rise.
+    /// </summary>
     public sealed class TombstoneStage : MonoBehaviour
     {
-        const float RiseSeconds = 1.2f;
-        Transform _stone;
-        float _t;
+        [Header("Parts (edit them in the prefab)")]
+        [SerializeField] Transform stone;
+        [SerializeField] TMP_Text titleText;
+        [SerializeField] TMP_Text nameText;
+        [SerializeField] TMP_Text detailsText;
+        [SerializeField] TMP_Text killedByText;
 
-        public void Build(FighterData d)
+        [Header("Rise animation")]
+        [SerializeField] float riseSeconds = 1.2f;
+        [SerializeField] float riseDepth = 0.3f;
+
+        [Header("Wording. Details: {0} tier, {1} level, {2} wins.  Killed by: {0} enemy name, {1} match number")]
+        [SerializeField] string titleFormat = "R.I.P.";
+        [SerializeField] string detailsFormat = "{0}  Lv {1}  -  {2}";
+        [SerializeField] string killedByFormat = "Died against {0}\nin match {1}";
+        [SerializeField] string killedByUnknownFormat = "Died in match {0}";
+
+        Vector3 _restPos;
+        float _t = 999f;
+
+        public void Build(FighterData d, FighterData killer)
         {
-            var stoneColor = new Color(0.55f, 0.57f, 0.60f);
-            var darkColor = new Color(0.30f, 0.31f, 0.34f);
+            if (titleText != null) titleText.text = titleFormat;
+            if (nameText != null) nameText.text = d.displayName;
+            if (detailsText != null)
+                detailsText.text = Fmt(detailsFormat, FighterTiers.Label(d.tier), d.level, d.wins + (d.wins == 1 ? " win" : " wins"));
+            if (killedByText != null)
+                killedByText.text = killer != null
+                    ? Fmt(killedByFormat, killer.displayName, d.fights)
+                    : Fmt(killedByUnknownFormat, d.fights);
 
-            Prim(PrimitiveType.Cylinder, transform, new Vector3(0f, 0.003f, 0f), new Vector3(0.9f, 0.003f, 0.9f), new Color(0.10f, 0.11f, 0.15f));
-
-            _stone = new GameObject("Stone").transform;
-            _stone.SetParent(transform, false);
-
-            Prim(PrimitiveType.Cube, _stone, new Vector3(0f, 0.012f, 0f), new Vector3(0.10f, 0.012f, 0.045f), darkColor);          // base slab
-            var body = Prim(PrimitiveType.Cube, _stone, new Vector3(0f, 0.063f, 0f), new Vector3(0.07f, 0.09f, 0.016f), stoneColor);  // slab
-            var cap = Prim(PrimitiveType.Cylinder, _stone, new Vector3(0f, 0.108f, 0f), new Vector3(0.07f, 0.008f, 0.07f), stoneColor); // rounded top
-            cap.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-
-            var go = new GameObject("Epitaph");
-            go.transform.SetParent(_stone, false);
-            go.transform.localPosition = new Vector3(0f, 0.075f, -0.0092f);   // front face, toward the viewer (-Z)
-            var text = go.AddComponent<TextMeshPro>();
-            text.alignment = TextAlignmentOptions.Center;
-            text.fontSize = 0.17f;
-            text.color = new Color(0.12f, 0.12f, 0.14f);
-            string wins = d.wins + " win" + (d.wins == 1 ? "" : "s");
-            text.text = "R.I.P.\n<size=80%>" + d.displayName + "</size>\n<size=60%>" + FighterTiers.Label(d.tier) + "  Lv " + d.level + "  -  " + wins + "</size>";
-
-            _stone.localPosition = new Vector3(0f, -0.16f, 0f);   // starts underground
+            if (stone != null && riseSeconds > 0f)
+            {
+                _restPos = stone.localPosition;
+                stone.localPosition = _restPos + Vector3.down * riseDepth;
+                _t = 0f;
+            }
         }
 
         void Update()
         {
-            if (_stone == null || _t >= RiseSeconds) return;
+            if (stone == null || _t >= riseSeconds) return;
             _t += Time.deltaTime;
-            float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t / RiseSeconds));
-            _stone.localPosition = new Vector3(0f, Mathf.Lerp(-0.16f, 0f, k), 0f);
+            float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t / riseSeconds));
+            stone.localPosition = _restPos + Vector3.down * (riseDepth * (1f - k));
         }
 
-        static GameObject Prim(PrimitiveType type, Transform parent, Vector3 pos, Vector3 scale, Color c)
+        static string Fmt(string format, object a, object b = null, object c = null)
         {
-            var go = GameObject.CreatePrimitive(type);
-            var col = go.GetComponent<Collider>();
-            if (col != null) Destroy(col);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos;
-            go.transform.localScale = scale;
-            var r = go.GetComponent<Renderer>();
-            var mat = StageMaterials.Make(c);
-            if (r != null && mat != null) r.sharedMaterial = mat;
-            return go;
+            try { return string.Format(format, a, b, c); }
+            catch (System.FormatException) { return format; }   // a typo in the wording must never break the game
         }
     }
 }

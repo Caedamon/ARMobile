@@ -25,7 +25,20 @@ namespace Game
         const float SlotSpacing = 0.22f;
         const float PuppetY = 0.01f;
         const float SelectedScaleMul = 1.35f;
-        static readonly Vector3 FrontPos = new Vector3(0f, PuppetY, -0.14f);
+        static readonly Vector3 DefaultFront = new Vector3(0f, PuppetY, -0.14f);
+
+        [Header("Layout (move these child objects in the prefab)")]
+        [SerializeField] Transform[] candidateSlots;   // where the candidates stand
+        [SerializeField] Transform frontSlot;          // where the inspected candidate steps to
+        [SerializeField] Transform hubSlot;            // where your fighter stands in the hub
+        [Tooltip("Leave empty to build a plain floor disc in code.")]
+        [SerializeField] GameObject floorObject;
+
+        [Header("Name labels")]
+        [Tooltip("Empty space between the top of the head and the bottom of the name label (fighter-local units). Bigger = higher.")]
+        [SerializeField] float nameplateGap = 0.15f;
+
+        Vector3 FrontPos { get { return frontSlot != null ? frontSlot.localPosition : DefaultFront; } }
 
         FighterCatalog _catalog;
         List<WeaponDefinition> _showcase;
@@ -38,7 +51,7 @@ namespace Game
         {
             _catalog = catalog;
             _showcase = showcaseWeapons;
-            BuildFloor();
+            if (floorObject == null) BuildFloor();
         }
 
         void BuildFloor()
@@ -51,8 +64,7 @@ namespace Game
             floor.transform.localPosition = new Vector3(0f, 0.003f, 0f);
             floor.transform.localScale = new Vector3(0.9f, 0.003f, 0.9f);
             var rend = floor.GetComponent<Renderer>();
-            var mat = StageMaterials.Make(new Color(0.10f, 0.11f, 0.15f));
-            if (rend != null && mat != null) rend.sharedMaterial = mat;
+            if (rend != null) rend.material.color = new Color(0.10f, 0.11f, 0.15f);
         }
 
         // ------------------------------------------------------------------ content
@@ -64,7 +76,9 @@ namespace Game
             {
                 float x = (i - (n - 1) * 0.5f) * SlotSpacing;
                 float z = 0.12f - 0.06f * Mathf.Abs(i - (n - 1) * 0.5f);   // gentle arc, outer fighters closer to the viewer
-                AddSlot(list[i], new Vector3(x, PuppetY, z), 1f);
+                Vector3 pos = new Vector3(x, PuppetY, z);
+                if (candidateSlots != null && i < candidateSlots.Length && candidateSlots[i] != null) pos = candidateSlots[i].localPosition;
+                AddSlot(list[i], pos, 1f);
             }
             _selected = -1;
         }
@@ -72,7 +86,7 @@ namespace Game
         public void ShowSingle(FighterData d)
         {
             ClearPuppets();
-            AddSlot(d, new Vector3(0f, PuppetY, -0.04f), SelectedScaleMul);
+            AddSlot(d, hubSlot != null ? hubSlot.localPosition : new Vector3(0f, PuppetY, -0.04f), SelectedScaleMul);
             _selected = -1;
         }
 
@@ -123,6 +137,7 @@ namespace Game
             if (def != null && holder != null) holder.Equip(def);
 
             var plate = go.AddComponent<FighterNameplate>();
+            plate.gapAboveHead = nameplateGap;
             plate.Build(d);
             return go;
         }
