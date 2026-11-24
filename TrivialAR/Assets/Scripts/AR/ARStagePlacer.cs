@@ -103,6 +103,40 @@ namespace AR
             if (hidePlanesAfterPlacement) StopAndHidePlanes();
         }
 
+        /// <summary>The spot on the table where the stage anchor was placed (world space).</summary>
+        public Vector3 StageOrigin { get { return _anchorRoot != null ? _anchorRoot.position : Vector3.zero; } }
+
+        /// <summary>
+        /// Where a screen point lands on the table (the horizontal plane through the stage anchor).
+        /// Works on a phone and in the editor. Points farther than maxRadius from the anchor are pulled in.
+        /// </summary>
+        public bool TryGroundPoint(Vector2 screenPos, out Vector3 point, float maxRadius = 1.2f)
+        {
+            point = default;
+            if (_anchorRoot == null) return false;
+            var cam = Camera.main;
+            if (cam == null) return false;
+
+            var plane = new Plane(_anchorRoot.up, _anchorRoot.position);
+            var ray = cam.ScreenPointToRay(screenPos);
+            float enter;
+            if (!plane.Raycast(ray, out enter)) return false;
+
+            point = ray.GetPoint(enter);
+            Vector3 off = point - _anchorRoot.position;
+            if (off.magnitude > maxRadius) point = _anchorRoot.position + off.normalized * maxRadius;
+            return true;
+        }
+
+        /// <summary>A prefab placed on the table next to the current stage (the stage is NOT replaced). Anchored like the stage.</summary>
+        public GameObject InstantiateAt(GameObject prefab, Vector3 worldPos, Quaternion worldRot)
+        {
+            if (_anchorRoot == null || prefab == null) return null;
+            var go = Instantiate(prefab, _anchorRoot);
+            go.transform.SetPositionAndRotation(worldPos, worldRot);
+            return go;
+        }
+
         /// <summary>An empty stage you build content into.</summary>
         public GameObject CreateStage(string stageName)
         {

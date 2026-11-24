@@ -34,6 +34,10 @@ namespace Game
         [Tooltip("Leave empty to build a plain floor disc in code.")]
         [SerializeField] GameObject floorObject;
 
+        [Header("Name labels")]
+        [Tooltip("Empty space between the top of the head and the bottom of the name label (fighter-local units). Bigger = higher.")]
+        [SerializeField] float nameplateGap = 0.15f;
+
         Vector3 FrontPos { get { return frontSlot != null ? frontSlot.localPosition : DefaultFront; } }
 
         FighterCatalog _catalog;
@@ -133,6 +137,7 @@ namespace Game
             if (def != null && holder != null) holder.Equip(def);
 
             var plate = go.AddComponent<FighterNameplate>();
+            plate.gapAboveHead = nameplateGap;
             plate.Build(d);
             return go;
         }

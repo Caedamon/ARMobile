@@ -99,12 +99,16 @@ MonoBehaviour:
   playerSpawn: {fileID: 2140744471579304137}
   enemySpawn: {fileID: 1214535672163681528}
   showNameplates: 1
+  nameplateGap: 0.15
   nameplateHeight: 2.3
   nameplateFontSize: 3
   fighterSeparation: 1.2
+  sideBySide: 1
+  playerOnWest: 1
   groundOffset: 0
   realtimeCombat: 1
   unarmedMoveset: {fileID: 11400000, guid: b78d02a3a156e12428ea17e6cc65fa75, type: 2}
+  combatTuning: {fileID: 11400000, guid: 6cd7e3d306d60f4419521ddf1e2298f4, type: 2}
   animationPack: {fileID: 11400000, guid: 8360827fba6dcb94da6a2aa07739083f, type: 2}
   brainDebugLogs: 1
   debugLogs: 1

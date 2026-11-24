@@ -8,7 +8,7 @@ using Weaponary;
 
 namespace Game
 {
-    public enum GameState { Title, Placing, Roster, Hub, Fight, Result }
+    public enum GameState { Title, Placing, Roster, Hub, Fight, Result, Book }
 
     /// <summary>
     /// The game loop:  Title -> (place on table) -> Roster (pick 1 of 3) -> Hub -> Death Match -> Result -> Hub / Roster.
@@ -27,6 +27,10 @@ namespace Game
         public GameUI gameUiPrefab;
         public RosterStage rosterStagePrefab;
         public TombstoneStage tombstoneStagePrefab;
+        [Tooltip("The AR Book (made by Tools > Kaiju > Game > Create Book Prefabs). Leave empty to hide the Book.")]
+        public BookStage bookStagePrefab;
+        [Tooltip("While the book is open, hide the table-top fighter and floor so the (big) book has room. OFF = they stay.")]
+        public bool hideHubWhileBookOpen = true;
         [Tooltip("Leave empty to keep the title text from the GameUI prefab.")]
         public string titleOverride = "";
 
@@ -55,6 +59,10 @@ namespace Game
         GameUI _ui;
         ARStagePlacer _placer;
         RosterStage _roster;
+        BookStage _book;
+        GameObject _bookObject;
+        GameObject _hiddenStage;
+        bool _bookClosing;
         Canvas _hudCanvas;                 // the scene's existing fight HUD (portraits + health bars)
         SaveData _save;
 
@@ -118,6 +126,11 @@ namespace Game
             _ui.BackClicked += OnBack;
             _ui.DeathMatchClicked += OnDeathMatch;
             _ui.ResultContinueClicked += OnResultContinue;
+            _ui.BookTapped += OnBookTapped;
+            _ui.BookDropped += OnBookDropped;
+            _ui.BookPrevClicked += OnBookPrev;
+            _ui.BookNextClicked += OnBookNext;
+            _ui.BookCloseClicked += OnBookClose;
 
             // Remove any overlay that was saved into a prefab by accident, then add a fresh one.
             var oldOverlay = GetComponent<DeviceDebugOverlay>();
@@ -139,6 +152,11 @@ namespace Game
             _ui.BackClicked -= OnBack;
             _ui.DeathMatchClicked -= OnDeathMatch;
             _ui.ResultContinueClicked -= OnResultContinue;
+            _ui.BookTapped -= OnBookTapped;
+            _ui.BookDropped -= OnBookDropped;
+            _ui.BookPrevClicked -= OnBookPrev;
+            _ui.BookNextClicked -= OnBookNext;
+            _ui.BookCloseClicked -= OnBookClose;
         }
 
         void SetHud(bool on)
@@ -295,6 +313,133 @@ namespace Game
             _ui.ShowHub(fighter, _save != null ? _save.totalWins : 0);
         }
 
+        // ------------------------------------------------------------------ book
+        // The Book icon was dragged onto the table: the book appears where it was dropped. A plain tap puts it in the middle.
+        void OnBookTapped() { PlaceBook(false, default(Vector2)); }
+        void OnBookDropped(Vector2 screenPos) { PlaceBook(true, screenPos); }
+
+        void PlaceBook(bool useScreenPoint, Vector2 screenPos)
+        {
+            if (_state != GameState.Hub) return;
+            var fighter = FighterSession.PlayerFighter;
+            if (fighter == null) return;
+            if (bookStagePrefab == null)
+            {
+                Debug.LogError("[Game] No Book prefab assigned. Run Tools > Kaiju > Game > Create Book Prefabs.", this);
+                return;
+            }
+
+            Vector3 point;
+            if (!useScreenPoint || !_placer.TryGroundPoint(screenPos, out point)) point = _placer.StageOrigin;
+
+            // Facing you: its +Z points away from the camera, like every stage.
+            Vector3 dir = Vector3.forward;
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                dir = point - cam.transform.position;
+                dir.y = 0f;
+                if (dir.sqrMagnitude < 1e-4f) { dir = cam.transform.forward; dir.y = 0f; }
+                if (dir.sqrMagnitude < 1e-4f) dir = Vector3.forward;
+            }
+
+            var go = _placer.InstantiateAt(bookStagePrefab.gameObject, point, Quaternion.LookRotation(dir.normalized, Vector3.up));
+            var book = go != null ? go.GetComponent<BookStage>() : null;
+            if (book == null)
+            {
+                if (go != null) Destroy(go);
+                Debug.LogError("[Game] The Book prefab has no BookStage component on its root (or the table is not placed yet).", this);
+                return;
+            }
+
+            _bookObject = go;
+            _book = book;
+            _hiddenStage = null;
+            if (hideHubWhileBookOpen && _placer.CurrentStage != null)
+            {
+                _hiddenStage = _placer.CurrentStage;
+                _hiddenStage.SetActive(false);
+            }
+
+            _state = GameState.Book;
+            _bookClosing = false;
+            _book.Opened += RefreshBookUi;
+            _book.PageChanged += RefreshBookUi;
+            _book.Failed += OnBookFailed;
+            _ui.ShowBook("Opening the book...", false, false);
+
+            if (debugLogs) Debug.Log("[Game] Book placed at " + point + ". Fallen: " + (_save != null && _save.fallen != null ? _save.fallen.Count : 0));
+            _book.Open(fighter, _save != null ? _save.fallen : null);
+        }
+
+        void RefreshBookUi()
+        {
+            if (_state != GameState.Book || _book == null) return;
+            _ui.SetBookControls(_book.PageLabel, _book.CanTurnBack, _book.CanTurnForward);
+        }
+
+        void OnBookPrev()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _book.TurnBackward();
+        }
+
+        void OnBookNext()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _book.TurnForward();
+        }
+
+        void OnBookClose()
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            _bookClosing = true;
+            _ui.SetBookControls("", false, false);
+            _book.Close(() =>
+            {
+                if (_state != GameState.Book) return;
+                LeaveBook();
+                BackToHub();
+            });
+        }
+
+        void OnBookFailed()
+        {
+            if (_state != GameState.Book) return;
+            Debug.LogError("[Game] The Book could not be opened. Check the Console for [Book] messages.", this);
+            LeaveBook();
+            BackToHub();
+        }
+
+        // The hub stage was only hidden while the book was open, so just show it and the hub menu again.
+        void BackToHub()
+        {
+            _state = GameState.Hub;
+            _ui.ShowHub(FighterSession.PlayerFighter, _save != null ? _save.totalWins : 0);
+        }
+
+        void LeaveBook()
+        {
+            if (_book != null)
+            {
+                _book.Opened -= RefreshBookUi;
+                _book.PageChanged -= RefreshBookUi;
+                _book.Failed -= OnBookFailed;
+            }
+            _book = null;
+            _bookClosing = false;
+            // Dismiss lets the closing sound finish before the book is removed.
+            if (_bookObject != null)
+            {
+                var closing = _bookObject.GetComponent<BookStage>();
+                if (closing != null) closing.Dismiss();
+                else Destroy(_bookObject);
+            }
+            _bookObject = null;
+            if (_hiddenStage != null) _hiddenStage.SetActive(true);
+            _hiddenStage = null;
+        }
+
         void OnDeathMatch()
         {
             if (_state != GameState.Hub) return;
@@ -395,6 +540,8 @@ namespace Game
                 // Permadeath: the fighter is gone, and gets a tombstone.
                 var fallen = fighter;
                 FighterSession.PlayerFighter = null;
+                if (_save.fallen == null) _save.fallen = new List<FallenFighter>();
+                _save.fallen.Add(new FallenFighter(fallen, _lastEnemy));   // the graveyard pages of the Book
                 _save.hasFighter = false;
                 _save.fighter = new FighterData();
                 SaveSystem.Save(_save);

@@ -59,9 +59,11 @@ MonoBehaviour:
   gameUiPrefab: {fileID: 5870714131854577669, guid: 36e99504f6951c6429ac186b2140db82, type: 3}
   rosterStagePrefab: {fileID: 8568285645401212044, guid: 087f7dbfd02eba64b924415240d8407a, type: 3}
   tombstoneStagePrefab: {fileID: 8271405496117354117, guid: 6f0490076faec1a479458c60bf2e2a59, type: 3}
+  bookStagePrefab: {fileID: 6646851852453418252, guid: 3e40486b359e89a4dbffb090a8c995af, type: 3}
+  hideHubWhileBookOpen: 1
   titleOverride: 
   debugLogs: 0
-  deviceDebugOverlay: 1
+  deviceDebugOverlay: 0
   debugOutcome: 0
   rosterSize: 3
   fightEndDelay: 2.5
