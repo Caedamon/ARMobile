@@ -107,7 +107,17 @@ namespace KaijuTools
             Fill(bank.hitUnarmed, report, "Punch 2-1");
             Fill(bank.hitWeapon, report, "Hit Generic 2-1", "Hit Generic 5-1");
             Fill(bank.hitHeavy, report, "Stab 4-1");
-            Fill(bank.blocked, report, "Shield Metal Impact 1-3", "Shield Wood Impact 2-1");
+            Fill(bank.blocked, report, "Shield Metal Impact 1-3");
+            Fill(bank.blockedWood, report, "Shield Wood Impact 2-1");
+            // The first version of this tool put both shield sounds in 'blocked'. Move the wood one out.
+            var woodClip = Find("Shield Wood Impact 2-1");
+            if (woodClip != null && bank.blocked.clips != null && bank.blocked.clips.Length > 1 && System.Array.IndexOf(bank.blocked.clips, woodClip) >= 0)
+            {
+                var keep = new List<AudioClip>(bank.blocked.clips);
+                keep.Remove(woodClip);
+                bank.blocked.clips = keep.ToArray();
+                report.Add("moved the wood shield sound out of the metal 'blocked' slot");
+            }
             Fill(bank.attackGrunt, report, "Player_Attack_Grunt_01", "Player_Attack_Grunt_02", "Player_Attack_Grunt_03");
             Fill(bank.hurtGrunt, report, "Player_Hit_Grunt_01", "Player_Hit_Grunt_02", "Player_Hit_Grunt_03");
             Fill(bank.death, report, "Player_Hit_Death_01", "Player_Hit_Death_02", "Player_Hit_Death_03");

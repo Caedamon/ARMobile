@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db53621ef85646a4ab739f2def60553f, type: 3}
+  m_Name: CombatSounds
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.CombatSounds
+  swing:
+    clips:
+    - {fileID: 8300000, guid: 7b92b0f09cddb7d4db8bd8ff636afc42, type: 3}
+    volume: 0.55
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  swingLead: 0.08
+  dodge:
+    clips:
+    - {fileID: 8300000, guid: a981c277ff923944e954741dbb13f190, type: 3}
+    volume: 0.5
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  weaponPickup:
+    clips:
+    - {fileID: 8300000, guid: 8b0d7bcd83129a54c99692053f9c3104, type: 3}
+    volume: 0.6
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  hitUnarmed:
+    clips:
+    - {fileID: 8300000, guid: fc50a62858bca104795cf2f977bf37cb, type: 3}
+    volume: 0.8
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  hitWeapon:
+    clips:
+    - {fileID: 8300000, guid: 8e2cdd27b8cc91c4699c36569db21afc, type: 3}
+    - {fileID: 8300000, guid: 5943979eab67800469cfb11b9151aca0, type: 3}
+    volume: 0.8
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  hitHeavy:
+    clips:
+    - {fileID: 8300000, guid: 304b23c0eee3db34e896245054a5aa7e, type: 3}
+    volume: 0.85
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  blocked:
+    clips:
+    - {fileID: 8300000, guid: 89678f6e94cf79c40b7c0ad65b6337d0, type: 3}
+    volume: 0.85
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  blockedWood:
+    clips:
+    - {fileID: 8300000, guid: 756c0b2ccd33e0e4bacd5f34fe039b45, type: 3}
+    volume: 0.85
+    chance: 1
+    pitch: {x: 0.95, y: 1.05}
+  woodShields:
+  - paladin_shield
+  - Round_Shield
+  voicesEnabled: 1
+  attackGrunt:
+    clips:
+    - {fileID: 8300000, guid: ba42a5b7f039eee4199227a3dc00aa71, type: 3}
+    - {fileID: 8300000, guid: 932a115244fccbe429981e9f07b9c013, type: 3}
+    - {fileID: 8300000, guid: cc821022d51f62547a942c1a80cb73a2, type: 3}
+    volume: 0.4
+    chance: 0.4
+    pitch: {x: 0.95, y: 1.05}
+  gruntLead: 0.2
+  hurtGrunt:
+    clips:
+    - {fileID: 8300000, guid: 0a70e90f254c3664aacbb82b7aef73c4, type: 3}
+    - {fileID: 8300000, guid: 569d3924a4d47954982c5f2dfcfc9a9a, type: 3}
+    - {fileID: 8300000, guid: 80687b1bc6959464aa9357bd4c37216c, type: 3}
+    volume: 0.4
+    chance: 0.6
+    pitch: {x: 0.95, y: 1.05}
+  death:
+    clips:
+    - {fileID: 8300000, guid: f5b2a12ed29ce734faebd0c0514315bd, type: 3}
+    - {fileID: 8300000, guid: 18a16ff7f100e2a40b1603e2c9b7f946, type: 3}
+    - {fileID: 8300000, guid: 408c60ee29899214888fd5fde88b51c1, type: 3}
+    volume: 0.5
+    chance: 1
+    pitch: {x: 0.97, y: 1.03}
+  deathDelay: 0.1
+  voicePitchSpread: 0.08
+  enemyVoicePitch: 0.88
+  spare:
+  - {fileID: 8300000, guid: 197594e4e8190b34d8d26b00fff62a8b, type: 3}
+  - {fileID: 8300000, guid: f90119dee7cb62844bbb1905cf95f07d, type: 3}
+  - {fileID: 8300000, guid: 19a1286919c951244822bd1b8dbe4498, type: 3}
+  - {fileID: 8300000, guid: 7d4b62a33b7559542a876aabff1d9667, type: 3}

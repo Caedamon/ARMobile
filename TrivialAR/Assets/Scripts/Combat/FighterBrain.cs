@@ -462,7 +462,7 @@ namespace Combat
             Log("hit for " + dmg.ToString("0.0"));
 
             bool wasBlocked = _targetBrain != null && _targetBrain.IsBlocking;
-            if (sounds != null) sounds.PlayImpact(style, wasBlocked);
+            if (sounds != null) sounds.PlayImpact(style, wasBlocked, wasBlocked ? _targetBrain.HeldWeapon : null);
             if (_targetBrain != null && !wasBlocked) _targetBrain.PlayHurtVoice();
 
             if (_targetBrain != null)
@@ -479,6 +479,9 @@ namespace Combat
         {
             _hitStopUntil = Mathf.Max(_hitStopUntil, Time.time + seconds);
         }
+
+        /// <summary>The weapon (loadout) this fighter is holding, or null.</summary>
+        public WeaponDefinition HeldWeapon { get { return _holder != null ? _holder.Current : null; } }
 
         /// <summary>The attacker's hit just landed on this fighter: a grunt (unless it was blocked or it is dying).</summary>
         public void PlayHurtVoice()

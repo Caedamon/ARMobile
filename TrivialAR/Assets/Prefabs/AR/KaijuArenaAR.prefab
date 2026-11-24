@@ -109,6 +109,7 @@ MonoBehaviour:
   realtimeCombat: 1
   unarmedMoveset: {fileID: 11400000, guid: b78d02a3a156e12428ea17e6cc65fa75, type: 2}
   combatTuning: {fileID: 11400000, guid: 6cd7e3d306d60f4419521ddf1e2298f4, type: 2}
+  combatSounds: {fileID: 11400000, guid: b492e10ce5f91d24cbf4838c91613697, type: 2}
   animationPack: {fileID: 11400000, guid: 8360827fba6dcb94da6a2aa07739083f, type: 2}
   brainDebugLogs: 1
   debugLogs: 1

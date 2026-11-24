@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6893003347545578057}
   - component: {fileID: 6135136774426218196}
   - component: {fileID: 98511016448176975}
+  - component: {fileID: 6262734098025551139}
   m_Layer: 0
   m_Name: GameController
   m_TagString: Untagged
@@ -82,3 +83,24 @@ MonoBehaviour:
   hidePlanesAfterPlacement: 1
   inFrontDistance: 0.6
   inFrontDrop: 0.35
+--- !u!114 &6262734098025551139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8720759092197161943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04016379646dbb341a411c32372e4f90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.GameAudio
+  musicClip: {fileID: 8300000, guid: bcfd62e67b3d95a40bf7993095e77ccc, type: 3}
+  musicLoudness: 0.5
+  fadeInSeconds: 2
+  playMusic: 1
+  defaultMusicSlider: 0.7
+  defaultEffectsSlider: 0.8
+  effectsPreview: {fileID: 8300000, guid: 8e2cdd27b8cc91c4699c36569db21afc, type: 3}
+  previewVolume: 0.8
+  effectVoices: 12

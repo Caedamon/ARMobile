@@ -1,6 +1,7 @@
 using UnityEngine;
 using Fighters;
 using Game;
+using Weaponary;
 
 namespace Combat
 {
@@ -48,8 +49,12 @@ namespace Combat
         public Slot hitWeapon = new Slot { volume = 0.8f };
         [Tooltip("Two-handed weapons.")]
         public Slot hitHeavy = new Slot { volume = 0.85f };
-        [Tooltip("The hit landed on a raised shield.")]
+        [Tooltip("The hit landed on a raised METAL shield (every shield that is not on the wood list below).")]
         public Slot blocked = new Slot { volume = 0.85f };
+        [Tooltip("The hit landed on a raised WOOD shield.")]
+        public Slot blockedWood = new Slot { volume = 0.85f };
+        [Tooltip("Names of the shield PREFABS (the model in the weapon's Offhand Visual Prefab) that count as wood. Exact name, not case sensitive. Everything else is metal.")]
+        public string[] woodShields = { "paladin_shield", "Round_Shield" };
 
         [Header("Voices (the 'Action Combat Voice Pack'). Turn the whole group off here if you don't like them.")]
         public bool voicesEnabled = true;
@@ -81,9 +86,23 @@ namespace Combat
             if (voicesEnabled) attackGrunt.Play(Mathf.Max(0f, hitDelay - gruntLead), voicePitch);
         }
 
-        public void PlayImpact(string styleKey, bool wasBlocked)
+        public bool IsWoodShield(WeaponDefinition shieldLoadout)
         {
-            if (wasBlocked) { blocked.Play(0f, 1f); return; }
+            if (shieldLoadout == null || shieldLoadout.offhandVisualPrefab == null || woodShields == null) return false;
+            string n = shieldLoadout.offhandVisualPrefab.name;
+            foreach (var w in woodShields)
+                if (!string.IsNullOrEmpty(w) && string.Equals(w.Trim(), n, System.StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        /// <param name="defenderWeapon">The weapon (loadout) of the fighter who blocked; decides wood or metal.</param>
+        public void PlayImpact(string styleKey, bool wasBlocked, WeaponDefinition defenderWeapon)
+        {
+            if (wasBlocked)
+            {
+                if (IsWoodShield(defenderWeapon)) blockedWood.Play(0f, 1f); else blocked.Play(0f, 1f);
+                return;
+            }
             if (styleKey == ProgressionRules.Unarmed) hitUnarmed.Play(0f, 1f);
             else if (styleKey == ProgressionRules.TwoHand) hitHeavy.Play(0f, 1f);
             else hitWeapon.Play(0f, 1f);
