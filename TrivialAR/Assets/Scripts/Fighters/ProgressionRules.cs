@@ -8,6 +8,7 @@ namespace Fighters
     {
         public int xpGained;
         public int levelsGained;
+        public int pointsGained;                              // free stat points earned (spent under Stats on the hub)
         public List<string> statGains = new List<string>();   // e.g. "MIGHT +1"
     }
 
@@ -61,8 +62,8 @@ namespace Fighters
                 d.xp -= XpToNext(d.level);
                 d.level++;
                 result.levelsGained++;
-                string gain = GrowStat(d, rng);
-                if (!string.IsNullOrEmpty(gain)) result.statGains.Add(gain);
+                d.statPoints++;          // the player chooses where it goes (enemies still grow at random, see ScaleToLevel)
+                result.pointsGained++;
             }
             return result;
         }
@@ -172,13 +173,17 @@ namespace Fighters
             if (target > cur) AddProfXp(d, key, target - cur);
         }
 
+        public const int ProfXpPerHit = 6;
+        public const int ProfXpPerKill = 20;
+
         public static int ProfGain(FighterData d, bool kill)
         {
             float edu = Math.Max(0.7f, Math.Min(1.5f, 1f + 0.06f * (d.education - 5)));
-            return (int)Math.Round(3f * edu) + (kill ? 10 : 0);
+            return (int)Math.Round(ProfXpPerHit * edu) + (kill ? ProfXpPerKill : 0);
         }
 
-        public static float ProfDamageBonus(int level) { return 0.04f * level; }
+        // The fights use CombatTuning (Prof Damage Per Level) instead; this is only the fallback.
+        public static float ProfDamageBonus(int level) { return 0.05f * level; }
 
         /// <summary>Weapon-choice affinity: preferred style counts double, and every proficiency level adds 15%.</summary>
         public static float Affinity(FighterData d, WeaponClass cls)

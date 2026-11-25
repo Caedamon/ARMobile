@@ -43,6 +43,12 @@ namespace Game
         [Tooltip("Testing: end every fight after ~4 seconds with this result (e.g. to see the tombstone).")]
         public DebugOutcome debugOutcome = DebugOutcome.None;
 
+        [Header("Duel")]
+        [Tooltip("Hero XP from a won duel, as a fraction of a normal win (duels are for training, and nobody dies).")]
+        public float duelWinXpFactor = 0.5f;
+        [Tooltip("Hero XP from a lost duel. You still learn something.")]
+        public float duelLossXpFactor = 0.2f;
+
         [Header("Tuning")]
         public int rosterSize = 3;
         [Tooltip("Seconds to let the death animation play before showing the result.")]
@@ -74,6 +80,7 @@ namespace Game
         float _fightStarted;
         bool _resultToHub;
         FighterData _lastEnemy;
+        FightMode _mode = FightMode.DeathMatch;
         int[] _profBefore;
         readonly System.Random _rng = new System.Random();
 
@@ -125,6 +132,8 @@ namespace Game
             _ui.PickClicked += OnPick;
             _ui.BackClicked += OnBack;
             _ui.DeathMatchClicked += OnDeathMatch;
+            _ui.DuelClicked += OnDuel;
+            _ui.StatPointSpent += OnSpendPoint;
             _ui.ResultContinueClicked += OnResultContinue;
             _ui.BookTapped += OnBookTapped;
             _ui.BookDropped += OnBookDropped;
@@ -151,6 +160,8 @@ namespace Game
             _ui.PickClicked -= OnPick;
             _ui.BackClicked -= OnBack;
             _ui.DeathMatchClicked -= OnDeathMatch;
+            _ui.DuelClicked -= OnDuel;
+            _ui.StatPointSpent -= OnSpendPoint;
             _ui.ResultContinueClicked -= OnResultContinue;
             _ui.BookTapped -= OnBookTapped;
             _ui.BookDropped -= OnBookDropped;
@@ -443,12 +454,46 @@ namespace Game
         void OnDeathMatch()
         {
             if (_state != GameState.Hub) return;
-            EnterFight();
+            EnterFight(FightMode.DeathMatch);
+        }
+
+        // A duel is a death match where nobody dies: the loser kneels, and you keep your fighter.
+        void OnDuel()
+        {
+            if (_state != GameState.Hub) return;
+            EnterFight(FightMode.Duel);
+        }
+
+        // A "+" on the Stats screen: one free level-up point goes into the chosen stat. Saved at once.
+        void OnSpendPoint(int stat)
+        {
+            if (_state != GameState.Hub) return;
+            var f = FighterSession.PlayerFighter;
+            if (f == null || f.statPoints <= 0) return;
+
+            switch (stat)
+            {
+                case 0: if (f.might     >= ProgressionRules.StatCap) return; f.might++;     break;
+                case 1: if (f.ego       >= ProgressionRules.StatCap) return; f.ego++;       break;
+                case 2: if (f.education >= ProgressionRules.StatCap) return; f.education++; break;
+                case 3: if (f.insight   >= ProgressionRules.StatCap) return; f.insight++;   break;
+                default: return;
+            }
+            f.statPoints--;
+
+            if (_save == null) _save = new SaveData();
+            _save.hasFighter = true;
+            _save.fighter = f;
+            SaveSystem.Save(_save);
+            _ui.RefreshStatsUi(f);
+            if (debugLogs) Debug.Log("[Game] Spent a point on stat " + stat + ". Left: " + f.statPoints);
         }
 
         // ------------------------------------------------------------------ fight
-        void EnterFight()
+        void EnterFight(FightMode mode)
         {
+            _mode = mode;
+            FighterSession.Mode = mode;   // read by the arena's fighters when they spawn
             _state = GameState.Fight;
             _fightEnding = false;
             _fightStarted = Time.time;
@@ -512,6 +557,12 @@ namespace Game
             if (_save == null) _save = new SaveData();
             fighter.fights++;
 
+            if (_mode == FightMode.Duel)
+            {
+                EnterDuelResult(fighter, playerWon);
+                return;
+            }
+
             if (playerWon)
             {
                 fighter.wins++;
@@ -563,6 +614,31 @@ namespace Game
             }
         }
 
+        // Duel: nobody dies. Win or lose you keep your fighter; you get a share of the XP, and the weapon proficiency
+        // earned during the fight (1.5x in duels) is already in the fighter's data.
+        void EnterDuelResult(FighterData fighter, bool playerWon)
+        {
+            FighterSession.Mode = FightMode.DeathMatch;
+            _mode = FightMode.DeathMatch;
+
+            float factor = playerWon ? duelWinXpFactor : duelLossXpFactor;
+            int xp = Mathf.Max(1, Mathf.RoundToInt(ProgressionRules.XpReward(fighter, _lastEnemy != null ? _lastEnemy : fighter) * factor));
+            if (playerWon) { fighter.wins++; _save.totalWins++; }
+            var up = ProgressionRules.AddXp(fighter, xp, _rng);
+
+            _save.hasFighter = true;
+            _save.fighter = fighter;
+            SaveSystem.Save(_save);
+
+            ShowFighterStage(fighter);
+            _resultToHub = true;
+            if (playerWon)
+                _ui.ShowResult("DUEL WON", new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " wins the duel!"), "Continue");
+            else
+                _ui.ShowResult("DUEL LOST", new Color(1f, 0.6f, 0.25f),
+                               BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " yields, and nobody is hurt.\nYou still learn from it."), "Continue");
+        }
+
         // A roster/hub/result stage: from the prefab if one is assigned, otherwise built in code.
         RosterStage NewRosterStage(string stageName)
         {
@@ -584,15 +660,17 @@ namespace Game
             _roster.ShowSingle(fighter);
         }
 
-        static string BuildVictoryText(FighterData f, LevelUpResult up, int[] profBefore)
+        static string BuildVictoryText(FighterData f, LevelUpResult up, int[] profBefore, string headline = null)
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append(f.displayName).Append(" wins!");
+            sb.Append(headline != null ? headline : f.displayName + " wins!");
             sb.Append("\n+").Append(up.xpGained).Append(" XP   (").Append(f.xp).Append(" / ").Append(ProgressionRules.XpToNext(f.level)).Append(")");
             if (up.levelsGained > 0)
             {
                 sb.Append("\nLEVEL UP!  Lv ").Append(f.level);
                 foreach (var s in up.statGains) sb.Append("   ").Append(s);
+                if (up.pointsGained > 0)
+                    sb.Append("\n+").Append(up.pointsGained).Append(up.pointsGained == 1 ? " stat point" : " stat points").Append("  (spend it under Stats)");
             }
             string prof = ProgressionRules.ProfDiffText(profBefore, f);
             if (!string.IsNullOrEmpty(prof)) sb.Append("\n").Append(prof);

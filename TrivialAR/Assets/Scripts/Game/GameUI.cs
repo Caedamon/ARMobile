@@ -20,6 +20,10 @@ namespace Game
                             BookTapped, BookPrevClicked, BookNextClicked, BookCloseClicked;
         /// <summary>The Book icon was dragged onto the table and let go at this screen position.</summary>
         public event Action<Vector2> BookDropped;
+        /// <summary>The Duel button on the hub.</summary>
+        public event Action DuelClicked;
+        /// <summary>A "+" on the Stats screen: 0 MIGHT, 1 EGO, 2 EDUCATION, 3 INSIGHT.</summary>
+        public event Action<int> StatPointSpent;
 
         // colours
         static readonly Color Dim      = new Color(0.03f, 0.04f, 0.07f, 0.62f);
@@ -76,6 +80,16 @@ namespace Game
         [SerializeField] RectTransform _musicTrack, _musicFill, _musicHandle, _fxTrack, _fxFill, _fxHandle;
         [SerializeField] TMP_Text _musicValue, _fxValue;
 
+        // duel + stats (spend level-up points). Built by AddDuelAndStatsUi; restyle them in the GameUI prefab.
+        [SerializeField] Button _duelButton;
+        [SerializeField] Button _statsHubButton, _statsCloseButton;
+        [SerializeField] GameObject _statsPanel;
+        [SerializeField] TMP_Text _statsTitle, _statsPointsText;
+        [SerializeField] TMP_Text[] _statsValue = new TMP_Text[4];
+        [SerializeField] Button[] _statsPlus = new Button[4];
+        FighterData _hubFighter;
+        float _lastSpend = -10f;
+
         static string[] DefaultStatInfo()
         {
             return new[]
@@ -99,6 +113,7 @@ namespace Game
             if (_bookPanel == null || _bookIcon == null) AddBookUi();   // an older GameUI prefab without the Book icon/screen: add it
             if (!HasStatInfoUi()) AddStatInfoUi();                       // same for the stat info popup
             if (_settingsPanel == null) AddSettingsUi();                 // and the Settings screen
+            if (!HasDuelStatsUi()) AddDuelAndStatsUi();                  // and the Duel button + Stats screen
 
             WireButtons();
             HideAll();
@@ -119,6 +134,7 @@ namespace Game
             AddBookUi();
             AddStatInfoUi();
             AddSettingsUi();
+            AddDuelAndStatsUi();
         }
 
         void Update()
@@ -150,7 +166,7 @@ namespace Game
 
         public static bool IsPointOverButton(Vector2 screenPos)
         {
-            return _instance != null && (_instance.ButtonAt(screenPos) != null || _instance.IsStatUiAt(screenPos) || _instance.SettingsOpen);
+            return _instance != null && (_instance.ButtonAt(screenPos) != null || _instance.IsStatUiAt(screenPos) || _instance.ModalOpen);
         }
 
         void Raise(Action handler)
@@ -175,6 +191,15 @@ namespace Game
             Wire(_settingsTitleButton, OpenSettings);
             Wire(_settingsHubButton, OpenSettings);
             Wire(_settingsCloseButton, CloseSettings);
+            Wire(_duelButton, () => Raise(DuelClicked));
+            Wire(_statsHubButton, OpenStats);
+            Wire(_statsCloseButton, CloseStats);
+            if (_statsPlus != null)
+                for (int i = 0; i < _statsPlus.Length; i++)
+                {
+                    int idx = i;
+                    Wire(_statsPlus[i], () => RaiseSpend(idx));
+                }
         }
 
         static void Wire(Button b, UnityEngine.Events.UnityAction action)
@@ -188,12 +213,14 @@ namespace Game
         {
             if (_canvas == null) return null;
             var buttons = _canvas.GetComponentsInChildren<Button>(false);
-            bool modal = SettingsOpen;   // while Settings is open only its own buttons work
+            // while Settings or Stats is open only its own buttons work
+            GameObject modalPanel = SettingsOpen ? _settingsPanel : (StatsOpen ? _statsPanel : null);
+            bool modal = modalPanel != null;
             for (int i = buttons.Length - 1; i >= 0; i--)
             {
                 var b = buttons[i];
                 if (!b.isActiveAndEnabled || !b.interactable) continue;
-                if (modal && !b.transform.IsChildOf(_settingsPanel.transform)) continue;
+                if (modal && !b.transform.IsChildOf(modalPanel.transform)) continue;
                 if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)b.transform, screenPos, null)) return b;
             }
             return null;
@@ -420,6 +447,7 @@ namespace Game
             if (_bookGhost != null) _bookGhost.gameObject.SetActive(false);
             if (_statPopup != null) _statPopup.SetActive(false);
             if (_settingsPanel != null) _settingsPanel.SetActive(false);
+            if (_statsPanel != null) _statsPanel.SetActive(false);
             _dragSlider = -1;
             _bookDragging = false;
         }
@@ -489,6 +517,8 @@ namespace Game
             _hubName.color = FighterTiers.Tint(d.tier);
             _hubInfo.text = FighterTiers.Label(d.tier) + "  -  Level " + d.level + "  (XP " + d.xp + " / " + ProgressionRules.XpToNext(d.level) + ")  -  " + d.wins + " win" + (d.wins == 1 ? "" : "s");
             _hubProf.text = ProgressionRules.ProfLine(d);
+            _hubFighter = d;
+            RefreshHubStatsButton(d);
             _hubPanel.SetActive(true);
         }
 
@@ -552,6 +582,151 @@ namespace Game
                 _bookPrevButton = NewButton(rt, "BookPrevButton", "< Back", 0.17f, 0.075f, new Vector2(300f, 120f), Grey, out l);
                 _bookCloseButton = NewButton(rt, "BookCloseButton", "Close", 0.5f, 0.075f, new Vector2(300f, 120f), Blue, out l);
                 _bookNextButton = NewButton(rt, "BookNextButton", "Next >", 0.83f, 0.075f, new Vector2(300f, 120f), Green, out l);
+            }
+        }
+
+        // ------------------------------------------------------------------ duel button + stats screen (spend level-up points)
+        public bool StatsOpen { get { return _statsPanel != null && _statsPanel.activeSelf; } }
+        public bool ModalOpen { get { return SettingsOpen || StatsOpen; } }
+
+        static readonly string[] StatBlurb =
+        {
+            "damage and health",
+            "poise and shield choice",
+            "XP and weapon training",
+            "crits, dodge, speed and sight",
+        };
+
+        public bool HasDuelStatsUi()
+        {
+            if (_duelButton == null || _statsPanel == null || _statsCloseButton == null || _statsPlus == null || _statsPlus.Length != 4 ||
+                _statsValue == null || _statsValue.Length != 4) return false;
+            for (int i = 0; i < 4; i++) if (_statsPlus[i] == null || _statsValue[i] == null) return false;
+            return _statsHubButton != null || _hubPanel == null;
+        }
+
+        /// <summary>
+        /// Turns the hub's "Duel (coming soon)" button on, adds a Stats button to the hub and the Stats screen
+        /// (four stats with a + each, for the points you earn from levelling up). Only creates what is missing.
+        /// Used by Tools > Kaiju > Duel > Set Up Duel, and as a run-time fallback.
+        /// </summary>
+        public void AddDuelAndStatsUi()
+        {
+            if (_safe == null) return;
+            TMP_Text l;
+
+            if (_duelButton == null && _hubPanel != null)
+            {
+                var found = _hubPanel.transform.Find("DuelButton");
+                if (found != null) _duelButton = found.GetComponent<Button>();
+                if (_duelButton == null)
+                    _duelButton = NewButton(_hubPanel.transform, "DuelButton", "Duel  (nobody dies)", 0.5f, 0.145f, new Vector2(760f, 110f), Blue, out l);
+            }
+            if (_duelButton != null)
+            {
+                _duelButton.interactable = true;
+                var lab = _duelButton.GetComponentInChildren<TMP_Text>();
+                if (lab != null && lab.text.Contains("coming soon")) lab.text = "Duel  (nobody dies)";
+                var img = _duelButton.GetComponent<Image>();
+                if (img != null && img.color == Grey) img.color = Blue;
+            }
+
+            if (_statsHubButton == null && _hubPanel != null)
+            {
+                _statsHubButton = NewButton(_hubPanel.transform, "StatsButton", "Stats", 0.16f, 0.37f, new Vector2(240f, 110f), Grey, out l);
+                l.fontSize = 36f;
+            }
+
+            if (_statsPanel == null)
+            {
+                _statsPanel = NewPanel("StatsPanel", new Color(0.03f, 0.04f, 0.07f, 0.92f), true);
+                var rt = _statsPanel.transform;
+
+                _statsTitle = NewText(rt, "StatsTitle", "", 64f, Color.white, TextAlignmentOptions.Center, FontStyles.Bold);
+                Anchor(_statsTitle.rectTransform, 0.5f, 0.88f, new Vector2(1000f, 110f));
+                _statsPointsText = NewText(rt, "StatsPoints", "", 46f, BarFill, TextAlignmentOptions.Center, FontStyles.Bold);
+                Anchor(_statsPointsText.rectTransform, 0.5f, 0.80f, new Vector2(1000f, 80f));
+
+                _statsValue = new TMP_Text[4];
+                _statsPlus = new Button[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    float top = 0.71f - i * 0.135f;
+
+                    var label = NewText(rt, "StatsLabel" + i, StatNames[i], 52f, Color.white, TextAlignmentOptions.Left, FontStyles.Bold);
+                    Frac(label.rectTransform, 0.07f, top - 0.07f, 0.55f, top);
+                    var blurb = NewText(rt, "StatsBlurb" + i, StatBlurb[i], 30f, SoftWhite, TextAlignmentOptions.Left);
+                    Frac(blurb.rectTransform, 0.07f, top - 0.115f, 0.62f, top - 0.07f);
+
+                    _statsValue[i] = NewText(rt, "StatsValue" + i, "0", 60f, Color.white, TextAlignmentOptions.Right, FontStyles.Bold);
+                    Frac(_statsValue[i].rectTransform, 0.55f, top - 0.115f, 0.74f, top);
+
+                    _statsPlus[i] = NewButton(rt, "StatsPlus" + i, "+", 0.86f, top - 0.0575f, new Vector2(160f, 120f), Green, out l);
+                    l.fontSize = 84f;
+                }
+
+                _statsCloseButton = NewButton(rt, "StatsCloseButton", "Done", 0.5f, 0.10f, new Vector2(720f, 130f), Blue, out l);
+                _statsPanel.SetActive(false);
+            }
+        }
+
+        void OpenStats()
+        {
+            if (_statsPanel == null || _hubFighter == null) return;
+            RefreshStatsUi(_hubFighter);
+            _statsPanel.transform.SetAsLastSibling();
+            _statsPanel.SetActive(true);
+        }
+
+        void CloseStats()
+        {
+            if (_statsPanel == null) return;
+            _statsPanel.SetActive(false);
+            if (_hubFighter != null) RefreshHubStatsButton(_hubFighter);
+        }
+
+        void RaiseSpend(int stat)
+        {
+            if (Time.unscaledTime - _lastSpend < 0.25f) return;   // the same tap can arrive twice (EventSystem + direct)
+            _lastSpend = Time.unscaledTime;
+            if (StatPointSpent != null) StatPointSpent(stat);
+        }
+
+        /// <summary>Redraws the Stats screen (called by the GameController after a point is spent).</summary>
+        public void RefreshStatsUi(FighterData d)
+        {
+            if (d == null) return;
+            _hubFighter = d;
+            int[] v = { d.might, d.ego, d.education, d.insight };
+            if (_statsTitle != null) _statsTitle.text = d.displayName + "   Lv " + d.level;
+            if (_statsPointsText != null)
+            {
+                _statsPointsText.text = d.statPoints > 0 ? "Points to spend:  " + d.statPoints : "No points to spend. Win fights to level up!";
+                _statsPointsText.color = d.statPoints > 0 ? BarFill : SoftWhite;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                bool atCap = v[i] >= ProgressionRules.StatCap;
+                if (_statsValue != null && _statsValue[i] != null) _statsValue[i].text = v[i] + (atCap ? "  max" : "");
+                if (_statsPlus != null && _statsPlus[i] != null) _statsPlus[i].gameObject.SetActive(d.statPoints > 0 && !atCap);
+            }
+            RefreshHubStatsButton(d);
+        }
+
+        // The hub's Stats button shows how many points are waiting, and so does the info line.
+        void RefreshHubStatsButton(FighterData d)
+        {
+            if (_hubInfo != null)
+            {
+                _hubInfo.text = FighterTiers.Label(d.tier) + "  -  Level " + d.level + "  (XP " + d.xp + " / " + ProgressionRules.XpToNext(d.level) + ")  -  " +
+                                d.wins + " win" + (d.wins == 1 ? "" : "s") + (d.statPoints > 0 ? "  -  " + d.statPoints + " point" + (d.statPoints == 1 ? "" : "s") + " to spend" : "");
+            }
+            if (_statsHubButton != null)
+            {
+                var lab = _statsHubButton.GetComponentInChildren<TMP_Text>();
+                if (lab != null) lab.text = d.statPoints > 0 ? "Stats (+" + d.statPoints + ")" : "Stats";
+                var img = _statsHubButton.GetComponent<Image>();
+                if (img != null) img.color = d.statPoints > 0 ? Green : Grey;
             }
         }
 
@@ -832,7 +1007,7 @@ namespace Game
 
             if (!_bookDragging)
             {
-                if (_hubPanel.activeInHierarchy && !SettingsOpen && PointerPressed(out pos) &&
+                if (_hubPanel.activeInHierarchy && !ModalOpen && PointerPressed(out pos) &&
                     RectTransformUtility.RectangleContainsScreenPoint(_bookIcon, pos, null))
                 {
                     _bookDragging = true;

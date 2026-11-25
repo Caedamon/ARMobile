@@ -10,6 +10,8 @@ namespace Core
         [Header("Config")]
         public float maxHP = 200f;
         public UnityEvent onDeath;
+        [Tooltip("ON = the body stays after death (used by Duels, where the loser kneels). OFF = it switches off 2 seconds after dying.")]
+        public bool keepBodyOnDeath = false;
 
         [Header("Runtime (read-only)")]
         [SerializeField] private float _hp;
@@ -41,7 +43,7 @@ namespace Core
             if (_hp <= 0f)
             {
                 onDeath?.Invoke();
-                StartCoroutine(DisableAfterSeconds(2.0f));
+                if (!keepBodyOnDeath) StartCoroutine(DisableAfterSeconds(2.0f));
             }
         }
 

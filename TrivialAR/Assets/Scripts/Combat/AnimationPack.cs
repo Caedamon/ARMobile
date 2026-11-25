@@ -23,6 +23,11 @@ namespace Combat
         [Header("Variants")]
         public List<AnimationClip> hitClips = new List<AnimationClip>();
         public List<AnimationClip> deathClips = new List<AnimationClip>();
+        [Tooltip("Played instead of a death clip when the loser of a Duel gives up (the kneel / sit). Filled in by Tools > Kaiju > Duel > Set Up Duel.")]
+        public AnimationClip yieldClip;
+        [Tooltip("The winner's victory pose (Cheering). Filled in by Tools > Kaiju > Duel > Set Up Duel, which also adds the 'Cheer' state to the controller.")]
+        public AnimationClip cheerClip;
+        public bool controllerHasCheer;
         public AnimationClip dodgeBack;
         public AnimationClip dodgeLeft;
         public AnimationClip dodgeRight;

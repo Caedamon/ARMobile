@@ -49,6 +49,22 @@ namespace Combat
         [Tooltip("Attack speed bonus per INSIGHT point above 5.")]
         public float attackSpeedPerInsight = 0.02f;
 
+        [Header("Weapon proficiency (per level, max level 10). Damage applies to every style; the perk only while fighting with that style.")]
+        [Tooltip("Extra damage per proficiency level (0.05 = +5%).")]
+        public float profDamagePerLevel = 0.05f;
+        [Tooltip("One-handed: extra crit chance per level (0.015 = +1.5%).")]
+        public float profCritPerLevel = 0.015f;
+        [Tooltip("Sword & shield: extra block chance per level.")]
+        public float profBlockPerLevel = 0.02f;
+        [Tooltip("Dual wield: extra attack speed per level.")]
+        public float profAttackSpeedPerLevel = 0.02f;
+        [Tooltip("Two-handed: extra chance per level to shrug off a flinch while attacking.")]
+        public float profPoisePerLevel = 0.03f;
+        [Tooltip("Unarmed: extra dodge chance per level.")]
+        public float profDodgePerLevel = 0.03f;
+        [Tooltip("Proficiency XP in a Duel is multiplied by this (duels are for training).")]
+        public float duelProfXpMultiplier = 1.5f;
+
         [Header("Per fighting style (1 = no change)")]
         public StyleTuning unarmed = new StyleTuning(1f, 1f, 1f);
         public StyleTuning oneHand = new StyleTuning(1f, 1f, 1f);

@@ -40,6 +40,7 @@ namespace Fighters
         public int xp;
         public int wins;
         public int fights;   // fights fought, wins and losses (shown on the tombstone)
+        public int statPoints;   // unspent level-up points (spent under Stats on the hub)
 
         // Weapon proficiency (XP per fighting style). Old saves without this simply start empty.
         public List<ProficiencyEntry> proficiency = new List<ProficiencyEntry>();

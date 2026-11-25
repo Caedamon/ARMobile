@@ -24,6 +24,9 @@ MonoBehaviour:
   deathClips:
   - {fileID: -1923750366902163184, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
   - {fileID: 3311174667178009610, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  yieldClip: {fileID: -134765771845422922, guid: 1a6cbf200aedb894297a8388858e89f7, type: 3}
+  cheerClip: {fileID: -3554408864086334942, guid: 1a6cbf200aedb894297a8388858e89f7, type: 3}
+  controllerHasCheer: 1
   dodgeBack: {fileID: 650242174318006946, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
   dodgeLeft: {fileID: -8338831036711338807, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
   dodgeRight: {fileID: 2188323905074769703, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}

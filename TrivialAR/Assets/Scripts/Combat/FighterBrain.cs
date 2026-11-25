@@ -19,7 +19,7 @@ namespace Combat
     [RequireComponent(typeof(Health))]
     public sealed class FighterBrain : MonoBehaviour
     {
-        enum State { Spawn, SeekWeapon, Pickup, Approach, Engage, Attack, Hit, Dodge, Block, Dead }
+        enum State { Spawn, SeekWeapon, Pickup, Approach, Engage, Attack, Hit, Dodge, Block, Cheer, Dead }
 
         [Header("Debug")]
         public bool debugLogs = false;
@@ -127,6 +127,8 @@ namespace Combat
         float _stunSeconds;
         float _height = 0.09f;
         float _voicePitch = 1f;
+        bool _duel;   // Duel: nobody dies, the loser kneels
+        bool _hadTarget, _cheered;   // the winner cheers once, when nobody is left to fight
 
         MeleeAI _target;
         FighterBrain _targetBrain;
@@ -172,6 +174,8 @@ namespace Combat
         void Start()
         {
             _height = MeasureHeight();
+            _duel = FighterSession.Mode == FightMode.Duel;
+            if (_duel && _hp != null) _hp.keepBodyOnDeath = true;   // the loser stays on the table, kneeling
             if (sounds != null) _voicePitch = sounds.VoicePitchFor(_ai.team == Combat.Team.Enemy);   // each fighter keeps its own voice
             Log("body height " + _height.ToString("0.000") + " m, stop distance (unarmed, vs same size) " + (bodyRadiusFactor * 2f * _height + unarmedReachFactor * _height).ToString("0.000") + " m");
             _ma.SetSpeed(0f);
@@ -200,8 +204,12 @@ namespace Combat
             _animSpeedTarget = 1f;
             TickTarget(dt);
 
+            if (_target != null) _hadTarget = true;
+            else if (_hadTarget && !_cheered && (_state == State.Engage || _state == State.Approach)) StartCheer();
+
             switch (_state)
             {
+                case State.Cheer:      break;
                 case State.Spawn:      TickSpawn(); break;
                 case State.SeekWeapon: TickSeek(dt); break;
                 case State.Pickup:     TickPickup(); break;
@@ -215,6 +223,14 @@ namespace Combat
 
             ApplyKnockback(dt);
             ApplyLocomotionAnim(dt);
+        }
+
+        // Nobody left to fight: celebrate (Cheering clip, if the Animation Pack has one).
+        void StartCheer()
+        {
+            _cheered = true;
+            EnterState(State.Cheer);
+            if (_fa != null) _fa.PlayCheer();
         }
 
         void EnterState(State s)
@@ -335,9 +351,20 @@ namespace Combat
             return unarmedMoveset;
         }
 
+        string StyleKeyNow() { return ProgressionRules.StyleKey(_holder != null ? _holder.Current : null); }
+
+        // Proficiency level in 'style', but only while that is the style being fought with (each style's perk works only while using it).
+        float ProfLevelFor(string style)
+        {
+            if (StyleKeyNow() != style) return 0f;
+            var d = Data();
+            return d != null ? ProgressionRules.ProfLevel(d, style) : 0f;
+        }
+
         float AttackSpeed()
         {
-            return Mathf.Max(0.3f, _move.speed * StyleNow().speedMul * (1f + T.attackSpeedPerInsight * (Insight() - 5f)));
+            return Mathf.Max(0.3f, _move.speed * StyleNow().speedMul * (1f + T.attackSpeedPerInsight * (Insight() - 5f))
+                                   * (1f + T.profAttackSpeedPerLevel * ProfLevelFor(ProgressionRules.Dual)));
         }
 
         void StartAttack()
@@ -452,13 +479,21 @@ namespace Combat
 
             var data = Data();
             string style = ProgressionRules.StyleKey(_holder != null ? _holder.Current : null);
-            float profBonus = data != null ? ProgressionRules.ProfDamageBonus(ProgressionRules.ProfLevel(data, style)) : 0f;
+            float profLevel = data != null ? ProgressionRules.ProfLevel(data, style) : 0f;
+            float profBonus = T.profDamagePerLevel * profLevel;
 
             float fallback = _meleeCombat != null ? _meleeCombat.damage : 25f;
             float dmg = DamageCalculator.ComputeMelee(gameObject, _target.gameObject, fallback) * _move.damageMul * StyleNow().damageMul * (1f + profBonus) * (_targetBrain != null ? _targetBrain.IncomingDamageFactor() : 1f);
+            // One-handed proficiency: an extra, separate chance to crit.
+            if (style == ProgressionRules.OneHand && profLevel > 0f && Random.value < T.profCritPerLevel * profLevel)
+                dmg *= Stats != null ? Stats.GetCritMultiplier() : 1.5f;
             hp.TakeDamage(dmg);
             BattleEvents.AnnounceDamage(_target, dmg);
-            if (data != null) ProgressionRules.AddProfXp(data, style, ProgressionRules.ProfGain(data, hp.IsDead));
+            if (data != null)
+            {
+                float profMul = _duel ? T.duelProfXpMultiplier : 1f;   // duels are training
+                ProgressionRules.AddProfXp(data, style, Mathf.Max(1, Mathf.RoundToInt(ProgressionRules.ProfGain(data, hp.IsDead) * profMul)));
+            }
             Log("hit for " + dmg.ToString("0.0"));
 
             bool wasBlocked = _targetBrain != null && _targetBrain.IsBlocking;
@@ -497,13 +532,13 @@ namespace Combat
             // Shield users prefer to block.
             if (_holder != null && _holder.HasShield && Time.time >= _nextBlockAt)
             {
-                float blockChance = T.BlockChance(Insight());
+                float blockChance = Mathf.Clamp01(T.BlockChance(Insight()) + T.profBlockPerLevel * ProfLevelFor(ProgressionRules.Shield));
                 if (Random.value <= blockChance) { StartBlock(attacker.transform.position, hitDelay); return; }
             }
 
             if (Time.time < _nextDodgeAt) return;
 
-            float chance = T.DodgeChance(Insight());
+            float chance = Mathf.Clamp01(T.DodgeChance(Insight()) + T.profDodgePerLevel * ProfLevelFor(ProgressionRules.Unarmed));
             if (Random.value > chance) return;
             StartDodge(attacker.transform.position);
         }
@@ -599,7 +634,7 @@ namespace Combat
             if (dir.sqrMagnitude < 1e-6f) dir = -transform.forward;
             dir.Normalize();
 
-            bool resist = _state == State.Attack && Random.value < Ego() * T.egoPoisePerPoint;
+            bool resist = _state == State.Attack && Random.value < Ego() * T.egoPoisePerPoint + T.profPoisePerLevel * ProfLevelFor(ProgressionRules.TwoHand);
             float kb = knockbackModelMeters * Scale() * (resist ? 0.4f : 1f);
             _kbDir = dir;
             _kbRemaining = kb;
@@ -632,8 +667,8 @@ namespace Combat
         {
             _state = State.Dead;
             _animator.speed = 1f;
-            if (_fa != null) _fa.PrepareDeath();
-            if (sounds != null) sounds.PlayDeath(_voicePitch);
+            if (_fa != null) { if (_duel) _fa.PrepareYield(); else _fa.PrepareDeath(); }
+            if (sounds != null) { if (_duel) sounds.PlayHurt(_voicePitch); else sounds.PlayDeath(_voicePitch); }
             _ma.PlayDeath();
             Log("dead");
         }

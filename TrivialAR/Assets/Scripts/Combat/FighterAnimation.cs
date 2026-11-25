@@ -18,12 +18,14 @@ namespace Combat
         public string pickupTrigger = "Pickup";
         public string spawnTrigger = "Spawn";
         public string blockTrigger = "BlockStart";
+        public string cheerTrigger = "Cheer";
 
         Animator _animator;
         AnimatorOverrideController _aoc;
         WeaponHolder _holder;
         bool _ready;
-        bool _hasPickup, _hasSpawn, _hasBlock;
+        bool _hasPickup, _hasSpawn, _hasBlock, _hasCheer;
+        static bool _warnedYield;
         int _stance = -1;
         int _lastHit = -1, _lastDeath = -1;
 
@@ -83,6 +85,14 @@ namespace Combat
             return pack.blockClip.length;
         }
 
+        /// <summary>The winner celebrates. Returns the clip length, or 0 if there is no cheer state yet.</summary>
+        public float PlayCheer()
+        {
+            if (!EnsureReady() || !_hasCheer || pack.cheerClip == null) return 0f;
+            _animator.SetTrigger(cheerTrigger);
+            return pack.cheerClip.length;
+        }
+
         /// <summary>The next hit reaction plays the 'blocked a hit' clip.</summary>
         public void PrepareBlockHit()
         {
@@ -111,6 +121,21 @@ namespace Combat
             if (c != null) SetOverride(pack.deathOriginal, c);
         }
 
+        public bool HasYield { get { return pack != null && pack.yieldClip != null; } }
+
+        /// <summary>The loser of a Duel gives up: plays the yield clip through the death state. Falls back to the death clip.</summary>
+        public void PrepareYield()
+        {
+            if (!EnsureReady() || pack.deathOriginal == null) return;
+            if (pack.yieldClip != null) { SetOverride(pack.deathOriginal, pack.yieldClip); return; }
+            if (!_warnedYield)
+            {
+                _warnedYield = true;
+                Debug.LogWarning("[FighterAnim] The Animation Pack has no 'Yield Clip', so the loser of a duel plays the normal death animation. Run Tools > Kaiju > Duel > Set Up Duel (or drag a clip onto 'Yield Clip' in the pack).", this);
+            }
+            PrepareDeath();
+        }
+
         // ------------------------------------------------------------------ internals
         bool EnsureReady()
         {
@@ -130,6 +155,7 @@ namespace Combat
             _hasPickup = pack.controllerHasPickup && HasParam(pickupTrigger);
             _hasSpawn = pack.controllerHasSpawn && HasParam(spawnTrigger);
             _hasBlock = pack.controllerHasBlock && HasParam(blockTrigger);
+            _hasCheer = pack.controllerHasCheer && HasParam(cheerTrigger);
             _ready = true;
             Log("ready (pickup state: " + _hasPickup + ", spawn state: " + _hasSpawn + ")");
             return true;
