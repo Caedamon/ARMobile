@@ -14,6 +14,8 @@ namespace Game
         public FighterData fighter = new FighterData();
         public int totalWins;
         public List<FallenFighter> fallen = new List<FallenFighter>();   // the graveyard (oldest first)
+        public RunState run = new RunState();                           // the fight schedule in progress (3 fights + finale)
+        public int runsWon;                                             // finished schedules (finale won)
     }
 
     /// <summary>One JSON file in Application.persistentDataPath.</summary>
@@ -28,6 +30,8 @@ namespace Game
                 if (!File.Exists(FilePath)) return null;
                 var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath));
                 if (data != null && data.fallen == null) data.fallen = new List<FallenFighter>();   // saves from before the Book
+                if (data != null && data.run == null) data.run = new RunState();                   // saves from before the schedule
+                if (data != null && data.run.cards == null) data.run.cards = new List<FightCard>();
                 return data;
             }
             catch (Exception e)

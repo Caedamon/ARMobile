@@ -19,6 +19,8 @@ namespace Combat
         public string spawnTrigger = "Spawn";
         public string blockTrigger = "BlockStart";
         public string cheerTrigger = "Cheer";
+        [Tooltip("No arrival animation at all (the Boss intro sets this: the boss has already made its entrance).")]
+        public bool skipSpawn;
 
         Animator _animator;
         AnimatorOverrideController _aoc;
@@ -64,11 +66,28 @@ namespace Combat
             return cur.weaponClass == WeaponClass.TwoHand ? 2 : 0;
         }
 
+        /// <summary>Starts the arrival. Returns how long the fighter should wait before it starts to fight.</summary>
         public float PlaySpawn()
         {
+            if (skipSpawn) return 0f;
             if (!EnsureReady() || !_hasSpawn || pack.spawnClip == null) return 0f;
+
+            // Portal arrival: the fighter falls out of a portal (FighterArrival moves it) and the "Spawn_Air" clip plays in the controller's Spawn state.
+            var arrival = GetComponent<FighterArrival>();
+            if (arrival != null && arrival.enabled && pack.spawnAirClip != null)
+            {
+                SetOverride(pack.spawnClip, pack.spawnAirClip);
+                return arrival.Begin(this, pack.spawnAirClip.length);
+            }
+
             _animator.SetTrigger(spawnTrigger);
             return pack.spawnClip.length;
+        }
+
+        /// <summary>Plays the arrival animation right now (used by FighterArrival once the portal has opened).</summary>
+        public void TriggerSpawn()
+        {
+            if (_animator != null) _animator.SetTrigger(spawnTrigger);
         }
 
         public float PlayPickup()

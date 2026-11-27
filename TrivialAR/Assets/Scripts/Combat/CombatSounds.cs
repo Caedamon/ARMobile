@@ -5,6 +5,57 @@ using Weaponary;
 
 namespace Combat
 {
+    /// <summary>How a fighter's voice sounds. Picked per fighter from the Fighter Gender Tag on its prefab (see FighterBrain).</summary>
+    public enum VoiceStyle { Normal, Female, Undead, Robot }
+
+    /// <summary>
+    /// One voice style: a pitch change plus optional effects (applied live, so you can tweak the numbers in Play mode and hear it),
+    /// and optional recordings of its own. The recordings are the BEST way to get a real female / undead / robot voice: drop clips into
+    /// the three lists and they are used instead of the normal grunts (the pitch and effects still apply on top).
+    /// </summary>
+    [System.Serializable]
+    public sealed class VoiceLook
+    {
+        [Tooltip("Voice pitch multiplier. Higher = higher voice (and a little faster, it is the same as speeding the recording up).")]
+        [Range(0.5f, 1.6f)] public float pitch = 1f;
+
+        [Header("Effects (all optional)")]
+        public bool lowPass;
+        [Tooltip("Muffles everything above this frequency. Lower = more muffled / hollow.")]
+        [Range(300f, 22000f)] public float lowPassHz = 3000f;
+        public bool distortion;
+        [Range(0f, 1f)] public float distortionLevel = 0.4f;
+        public bool echo;
+        [Tooltip("A very short echo (20-60 ms) makes a metallic, robotic buzz. A long one (200+) makes a real echo.")]
+        [Range(10f, 500f)] public float echoDelayMs = 40f;
+        [Range(0f, 1f)] public float echoDecay = 0.5f;
+        [Range(0f, 1f)] public float echoWet = 0.5f;
+        public bool chorus;
+        [Range(0f, 1f)] public float chorusDepth = 0.5f;
+        [Range(0f, 20f)] public float chorusRate = 3f;
+        public bool reverb;
+        public AudioReverbPreset reverbPreset = AudioReverbPreset.Cave;
+
+        [Header("Own recordings (empty = use the normal voice clips)")]
+        public AudioClip[] attackClips;
+        public AudioClip[] hurtClips;
+        public AudioClip[] deathClips;
+
+        public bool UsesEffects { get { return lowPass || distortion || echo || chorus || reverb; } }
+
+        public static VoiceLook DefaultFemale() { return new VoiceLook { pitch = 1.28f }; }
+
+        public static VoiceLook DefaultUndead()
+        {
+            return new VoiceLook { pitch = 0.72f, lowPass = true, lowPassHz = 3200f, distortion = true, distortionLevel = 0.18f, reverb = true, reverbPreset = AudioReverbPreset.Cave };
+        }
+
+        public static VoiceLook DefaultRobot()
+        {
+            return new VoiceLook { pitch = 0.92f, distortion = true, distortionLevel = 0.5f, echo = true, echoDelayMs = 30f, echoDecay = 0.45f, echoWet = 0.55f, chorus = true, chorusDepth = 0.5f, chorusRate = 3f };
+        }
+    }
+
     /// <summary>
     /// Every fight sound in one asset (Assets/Data/CombatSounds.asset, made by Tools > Kaiju > Audio > Set Up Audio).
     /// Each slot is a list of clips (one is picked at random each time) with its own volume, chance and pitch range.
@@ -32,6 +83,18 @@ namespace Combat
                 var c = clips[Random.Range(0, clips.Length)];
                 if (c == null) return;
                 GameAudio.PlayEffect(c, volume, Random.Range(pitch.x, pitch.y) * pitchMul, delay);
+            }
+
+            /// <summary>A voice line in a voice style: the style's own recordings if it has any, its pitch and its effects.</summary>
+            public void PlayVoice(float delay, float pitchMul, VoiceStyle style, VoiceLook look, AudioClip[] own)
+            {
+                var list = own != null && own.Length > 0 ? own : clips;
+                if (list == null || list.Length == 0) return;
+                if (chance < 1f && Random.value > chance) return;
+                var c = list[Random.Range(0, list.Length)];
+                if (c == null) return;
+                float p = Random.Range(pitch.x, pitch.y) * pitchMul * (look != null ? look.pitch : 1f);
+                GameAudio.PlayVoice(c, volume, p, delay, style, look);
             }
         }
 
@@ -70,6 +133,11 @@ namespace Combat
         [Tooltip("Enemies talk lower by this factor, so you can tell who is who.")]
         [Range(0.6f, 1.2f)] public float enemyVoicePitch = 0.88f;
 
+        [Header("Voice styles: who gets which is set on each prefab's Fighter Gender Tag (Female / Undead / Robot; Either = by the name)")]
+        public VoiceLook femaleVoice = VoiceLook.DefaultFemale();
+        public VoiceLook undeadVoice = VoiceLook.DefaultUndead();
+        public VoiceLook robotVoice = VoiceLook.DefaultRobot();
+
         [Header("Not used by the code yet (parked here so they stay in one place)")]
         public AudioClip[] spare;
 
@@ -80,10 +148,23 @@ namespace Combat
             return enemy ? p * enemyVoicePitch : p;
         }
 
-        public void PlaySwing(float hitDelay, float voicePitch)
+        VoiceLook LookOf(VoiceStyle style)
+        {
+            switch (style)
+            {
+                case VoiceStyle.Female: return femaleVoice;
+                case VoiceStyle.Undead: return undeadVoice;
+                case VoiceStyle.Robot:  return robotVoice;
+                default:                return null;
+            }
+        }
+
+        public void PlaySwing(float hitDelay, float voicePitch, VoiceStyle style = VoiceStyle.Normal)
         {
             swing.Play(Mathf.Max(0f, hitDelay - swingLead), 1f);
-            if (voicesEnabled) attackGrunt.Play(Mathf.Max(0f, hitDelay - gruntLead), voicePitch);
+            if (!voicesEnabled) return;
+            var look = LookOf(style);
+            attackGrunt.PlayVoice(Mathf.Max(0f, hitDelay - gruntLead), voicePitch, style, look, look != null ? look.attackClips : null);
         }
 
         public bool IsWoodShield(WeaponDefinition shieldLoadout)
@@ -108,8 +189,19 @@ namespace Combat
             else hitWeapon.Play(0f, 1f);
         }
 
-        public void PlayHurt(float voicePitch) { if (voicesEnabled) hurtGrunt.Play(0.03f, voicePitch); }
-        public void PlayDeath(float voicePitch) { if (voicesEnabled) death.Play(deathDelay, voicePitch); }
+        public void PlayHurt(float voicePitch, VoiceStyle style = VoiceStyle.Normal)
+        {
+            if (!voicesEnabled) return;
+            var look = LookOf(style);
+            hurtGrunt.PlayVoice(0.03f, voicePitch, style, look, look != null ? look.hurtClips : null);
+        }
+
+        public void PlayDeath(float voicePitch, VoiceStyle style = VoiceStyle.Normal)
+        {
+            if (!voicesEnabled) return;
+            var look = LookOf(style);
+            death.PlayVoice(deathDelay, voicePitch, style, look, look != null ? look.deathClips : null);
+        }
         public void PlayDodge() { dodge.Play(0f, 1f); }
         public void PlayPickup() { weaponPickup.Play(0f, 1f); }
     }

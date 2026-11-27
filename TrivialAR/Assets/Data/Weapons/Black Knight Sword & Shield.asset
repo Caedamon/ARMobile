@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Black Knight Sword & Shield
   weaponClass: 4
+  description: 'Dark steel for a cold fighter: a well-made sword and a metal shield
+    that rings when it blocks.'
   visualPrefab: {fileID: 5649156845068097607, guid: ea137f379a5f6344c9729289c37e2dd0, type: 3}
   offhandVisualPrefab: {fileID: 4157038299145157429, guid: 4c1006ebcd5e80645a1f0969b6942bb7, type: 3}
   baseDamage: 28

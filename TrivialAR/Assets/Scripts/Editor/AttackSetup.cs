@@ -12,8 +12,8 @@ using Weaponary;
 // Looks through every Rig_Medium animation file for attack clips that none of your Movesets use yet, and adds them
 // to the matching moveset (by name):
 //     Melee_Unarmed_Attack...    -> Unarmed
-//     Melee_1H_Attack...         -> OneHand and OneHandShield   (the "Jump" ones are skipped on purpose, like the first setup did)
-//     Melee_2H_Attack...         -> TwoHand
+//     Melee_1H_Attack...         -> OneHand and OneHandShield   (including Jump Chop, with its own timings)
+//     Melee_2H_Attack...         -> TwoHand                      (also the single "Melee_2H_Attack" clip from the LARGE rig files)
 //     Melee_Dualwield_Attack...  -> DualWield
 // Anything else with "Attack" in its name is only LISTED in the Console, so you can tell me where it belongs.
 // Nothing is removed or changed, only added. The timings (hitAt etc.) are guesses from the clip name: tune them in the Moveset assets.
@@ -23,6 +23,8 @@ namespace KaijuTools
     public static class AttackSetup
     {
         const string Folder = "Assets/Data/Movesets";
+
+        const string LargeTwoHand = "Melee_2H_Attack";
 
         static readonly Dictionary<string, float> SetSpeed = new Dictionary<string, float>
         {
@@ -43,6 +45,16 @@ namespace KaijuTools
                     if (!byName.ContainsKey(c.name)) byName[c.name] = c;
                 }
             }
+            // The large rig has one two-handed attack the medium rig does not. Both rigs are Humanoid, so it plays on medium fighters too.
+            foreach (var guid in AssetDatabase.FindAssets("Rig_Large t:Model"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                foreach (var c in AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>())
+                {
+                    if (c.name != LargeTwoHand) continue;
+                    if (!byName.ContainsKey(c.name)) byName[c.name] = c;
+                }
+            }
             if (byName.Count == 0) { Debug.LogWarning("[Attacks] No attack clips found in any Rig_Medium file."); return; }
 
             // what each moveset already has
@@ -58,7 +70,6 @@ namespace KaijuTools
             if (sets.Count == 0) { Debug.LogWarning("[Attacks] No movesets found in " + Folder + ". Run Tools > Kaiju > Combat > Create Starter Movesets first."); return; }
 
             var added = new List<string>();
-            var skipped = new List<string>();
             var unmapped = new List<string>();
 
             foreach (var kv in byName.OrderBy(k => k.Key))
@@ -68,11 +79,7 @@ namespace KaijuTools
 
                 List<string> targets;
                 if (n.StartsWith("Melee_Unarmed_Attack")) targets = new List<string> { "Unarmed" };
-                else if (n.StartsWith("Melee_1H_Attack"))
-                {
-                    if (n.Contains("Jump")) { skipped.Add(n); continue; }
-                    targets = new List<string> { "OneHand", "OneHandShield" };
-                }
+                else if (n.StartsWith("Melee_1H_Attack")) targets = new List<string> { "OneHand", "OneHandShield" };
                 else if (n.StartsWith("Melee_2H_Attack")) targets = new List<string> { "TwoHand" };
                 else if (n.StartsWith("Melee_Dualwield_Attack")) targets = new List<string> { "DualWield" };
                 else { unmapped.Add(n); continue; }
@@ -90,7 +97,6 @@ namespace KaijuTools
             AssetDatabase.SaveAssets();
 
             Debug.Log("[Attacks] Added " + added.Count + " attack(s):\n - " + (added.Count == 0 ? "(nothing new: every attack clip is already in a moveset)" : string.Join("\n - ", added.ToArray())) +
-                      (skipped.Count > 0 ? "\nSkipped on purpose (jump attacks): " + string.Join(", ", skipped.ToArray()) : "") +
                       (unmapped.Count > 0 ? "\nNot added, I don't know where these belong (tell me): " + string.Join(", ", unmapped.ToArray()) : "") +
                       "\nTune hitAt / damage on the new entries in " + Folder + ".");
         }
@@ -101,7 +107,9 @@ namespace KaijuTools
             string n = c.name;
             var m = new AttackMove { label = Pretty(n), clip = c, speed = speed };
 
-            if (n.Contains("Stab"))        { m.hitAt = 0.40f; m.lungeModelMeters = 0.40f; m.knockbackModelMeters = 0.25f; }
+            if (n.Contains("Jump"))        { m.hitAt = 0.55f; m.damageMul = 1.30f; m.reachMul = 1.10f; m.lungeModelMeters = 0.55f; m.knockbackModelMeters = 0.55f; m.stagger = 1.4f; m.weight = 0.5f; }
+            else if (n == LargeTwoHand)    { m.hitAt = 0.50f; m.damageMul = 1.20f; m.knockbackModelMeters = 0.50f; m.stagger = 1.2f; }
+            else if (n.Contains("Stab"))   { m.hitAt = 0.40f; m.lungeModelMeters = 0.40f; m.knockbackModelMeters = 0.25f; }
             else if (n.Contains("Chop"))   { m.hitAt = 0.50f; m.damageMul = 1.15f; m.knockbackModelMeters = 0.40f; m.stagger = 1.2f; }
             else if (n.Contains("Spin"))   { m.hitAt = 0.50f; m.damageMul = 1.30f; m.reachMul = 1.15f; m.knockbackModelMeters = 0.60f; m.stagger = 1.3f; m.speed = speed * 0.9f; m.weight = 0.6f; }
             else if (n.Contains("Kick"))   { m.hitAt = 0.50f; m.damageMul = 1.10f; m.knockbackModelMeters = 0.50f; }

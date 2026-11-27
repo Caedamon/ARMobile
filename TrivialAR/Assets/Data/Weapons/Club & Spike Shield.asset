@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Club & Spike Shield
   weaponClass: 4
+  description: A club to bash with and a spiked shield to keep them honest. Nothing
+    fancy, but it hurts.
   visualPrefab: {fileID: 4994951244829932142, guid: 17ef20d9ef42f85468d9ce3907205c5a, type: 3}
   offhandVisualPrefab: {fileID: 7401975154479212318, guid: 8cbf93cc05ab03f46b04865ec676d2b0, type: 3}
   baseDamage: 26

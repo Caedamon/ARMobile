@@ -31,6 +31,23 @@ namespace Fighters
             return null;
         }
 
+        /// <summary>The gender set on the model's prefab (FighterGenderTag). Looks at the prefab of the given side first, then the other one.</summary>
+        public FighterGender GenderOf(string modelId, FighterSide side)
+        {
+            var m = Find(modelId);
+            if (m == null) return FighterGender.NotSet;
+            var g = ReadTag(side == FighterSide.Player ? m.playerPrefab : m.enemyPrefab);
+            if (g == FighterGender.NotSet) g = ReadTag(side == FighterSide.Player ? m.enemyPrefab : m.playerPrefab);
+            return g;
+        }
+
+        static FighterGender ReadTag(GameObject prefab)
+        {
+            if (prefab == null) return FighterGender.NotSet;
+            var tag = prefab.GetComponent<FighterGenderTag>();
+            return tag != null ? tag.Gender : FighterGender.NotSet;
+        }
+
         public List<Model> ForSide(FighterSide side)
         {
             var list = new List<Model>();

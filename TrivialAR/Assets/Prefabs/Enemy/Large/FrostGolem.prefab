@@ -355,6 +355,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3908248715571247876}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 154070100335706551}
   m_SourcePrefab: {fileID: 100100000, guid: 0676f0bc13939df4197529b75bab180b, type: 3}
 --- !u!4 &2008225403537794597 stripped
 Transform:
@@ -489,6 +492,7 @@ MonoBehaviour:
   onDeath:
     m_PersistentCalls:
       m_Calls: []
+  keepBodyOnDeath: 0
   _hp: 0
 --- !u!114 &5584201814586843473
 MonoBehaviour:
@@ -503,6 +507,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   team: 1
+  freeForAll: 0
 --- !u!114 &4353214500872723229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -662,3 +667,16 @@ MonoBehaviour:
   pickupRange: 0.06
   rushMultiplier: 2
   pickupPauseSeconds: 0.5
+--- !u!114 &154070100335706551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7977578406141791347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2386e84b8c8018489c4a2ecc9535546, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.FighterGenderTag
+  gender: 4

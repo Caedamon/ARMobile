@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Dual Knives
   weaponClass: 5
+  description: Two small blades, very fast. Each cut is weak, but there are many
+    of them. Dual wielders gain attack speed with training, and clever fighters love
+    them.
   visualPrefab: {fileID: 9009576808342709501, guid: a5faf0b5a3031484bb52ddbd42bdff8c, type: 3}
   offhandVisualPrefab: {fileID: 8700410827338283574, guid: 509d5f8add907034f9ced8e08be4362a, type: 3}
   baseDamage: 20
@@ -24,3 +27,5 @@ MonoBehaviour:
   - {fileID: 1231959210303231270, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: -4620666395454361804, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 51a5000e624859e4c8923f6d0d5761f6, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

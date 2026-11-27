@@ -58,4 +58,15 @@ MonoBehaviour:
     knockbackModelMeters: 0.25
     stagger: 1
     weight: 1
+  - label: 1H Jump Chop!
+    clip: {fileID: 4995259511414573042, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
+    speed: 1
+    hitAt: 0.55
+    endAt: 0.92
+    damageMul: 1.3
+    reachMul: 1.1
+    lungeModelMeters: 0.55
+    knockbackModelMeters: 0.55
+    stagger: 1.4
+    weight: 0.5
   cooldownRange: {x: 0.3, y: 0.6}

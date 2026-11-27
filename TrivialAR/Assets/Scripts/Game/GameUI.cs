@@ -13,7 +13,7 @@ namespace Game
     /// All menu screens, built in code (no scene editing). Screen-space overlay, portrait layout
     /// designed at 1080x1920 and scaled. Positions are given as fractions of the (safe-area) screen.
     /// </summary>
-    public sealed class GameUI : MonoBehaviour
+    public sealed partial class GameUI : MonoBehaviour
     {
         public event Action ContinueClicked, NewGameClicked, PlaceInFrontClicked, PickClicked, BackClicked,
                             DeathMatchClicked, ResultContinueClicked,
@@ -114,6 +114,8 @@ namespace Game
             if (!HasStatInfoUi()) AddStatInfoUi();                       // same for the stat info popup
             if (_settingsPanel == null) AddSettingsUi();                 // and the Settings screen
             if (!HasDuelStatsUi()) AddDuelAndStatsUi();                  // and the Duel button + Stats screen
+            if (!HasScheduleUi()) AddScheduleUi();                       // and the fight schedule (cards)
+            if (!HasBookTabs()) AddBookTabs();                           // and the tabs under the Book
 
             WireButtons();
             HideAll();
@@ -135,6 +137,8 @@ namespace Game
             AddStatInfoUi();
             AddSettingsUi();
             AddDuelAndStatsUi();
+            AddScheduleUi();
+            AddBookTabs();
         }
 
         void Update()
@@ -194,6 +198,8 @@ namespace Game
             Wire(_duelButton, () => Raise(DuelClicked));
             Wire(_statsHubButton, OpenStats);
             Wire(_statsCloseButton, CloseStats);
+            WireScheduleButtons();
+            WireBookTabs();
             if (_statsPlus != null)
                 for (int i = 0; i < _statsPlus.Length; i++)
                 {
@@ -448,6 +454,7 @@ namespace Game
             if (_statPopup != null) _statPopup.SetActive(false);
             if (_settingsPanel != null) _settingsPanel.SetActive(false);
             if (_statsPanel != null) _statsPanel.SetActive(false);
+            if (_schedulePanel != null) _schedulePanel.SetActive(false);
             _dragSlider = -1;
             _bookDragging = false;
         }
@@ -488,6 +495,7 @@ namespace Game
             SetStat(2, d.education);
             SetStat(3, d.insight);
 
+            _cardShownFrame = Time.frameCount;   // the tap that picked this fighter must not also hit a stat row under the new card
             _card.SetActive(true);
             _pickBtn.SetActive(true);
             _backBtn.SetActive(true);
@@ -529,7 +537,26 @@ namespace Game
             _resultTitle.color = titleColor;
             _resultSub.text = subtitle;
             _resultBtnLabel.text = buttonLabel;
+            FitResultStrip(subtitle);
             _resultPanel.SetActive(true);
+        }
+
+        // The grey strip behind the result text grows with the text (top edge stays put), with a little room above and below.
+        float _resultStripBase = -1f;
+
+        void FitResultStrip(string subtitle)
+        {
+            var strip = _resultSub.transform.parent as RectTransform;
+            if (strip == null || strip == _safe) return;
+
+            if (_resultStripBase < 0f) _resultStripBase = Mathf.Max(100f, strip.sizeDelta.y);
+            _resultSub.margin = new Vector4(40f, 30f, 40f, 30f);
+            float width = Mathf.Max(200f, strip.rect.width > 1f ? strip.rect.width : strip.sizeDelta.x) - 80f;
+            float needed = _resultSub.GetPreferredValues(subtitle, width, 0f).y + 80f;   // 30 + 30 margin, 20 spare
+            float height = Mathf.Min(1300f, Mathf.Max(_resultStripBase, needed));
+
+            strip.sizeDelta = new Vector2(strip.sizeDelta.x, height);
+            strip.anchoredPosition = new Vector2(strip.anchoredPosition.x, -(height - _resultStripBase) * 0.5f);
         }
 
         // ------------------------------------------------------------------ book
@@ -943,6 +970,7 @@ namespace Game
 
         bool _popupConsumed;
         int _consumedFrame = -1;
+        int _cardShownFrame = -1;
 
         bool IsStatUiAt(Vector2 pos)
         {
@@ -960,6 +988,7 @@ namespace Game
             _popupConsumed = false;
             Vector2 pos;
             if (!PointerPressed(out pos)) return;
+            if (Time.frameCount <= _cardShownFrame) return;   // this very tap is the one that opened the card (it lands on the INSIGHT row)
 
             if (_statPopup != null && _statPopup.activeSelf)
             {
@@ -1069,6 +1098,7 @@ namespace Game
             if (_bookLabel != null) _bookLabel.text = pageLabel;
             if (_bookPrevButton != null) _bookPrevButton.interactable = canGoBack;
             if (_bookNextButton != null) _bookNextButton.interactable = canGoForward;
+            SetBookTabsEnabled(canGoBack || canGoForward);
         }
 
         // ------------------------------------------------------------------ builders

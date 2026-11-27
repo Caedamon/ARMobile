@@ -13,6 +13,16 @@ namespace Combat
     {
         [Header("Team")]
         public Team team = Team.Main;
+        [Tooltip("Last Hero Standing: ON = this fighter is an enemy of EVERYONE else, whatever team it is on. Set by the arena spawner.")]
+        public bool freeForAll;
+
+        /// <summary>Would these two fighters fight each other? Different teams, or a free-for-all.</summary>
+        public static bool IsHostile(MeleeAI a, MeleeAI b)
+        {
+            if (a == null || b == null || a == b) return false;
+            if (a.freeForAll || b.freeForAll) return true;
+            return a.team != b.team;
+        }
 
         [Header("Runtime")]
         public int CurrentInitiative { get; set; }
@@ -90,7 +100,7 @@ namespace Combat
             if (need)
             {
                 CachedTarget = all
-                    .Where(u => u && u != this && !u.IsDead && u.team != team)
+                    .Where(u => u && u != this && !u.IsDead && IsHostile(this, u))
                     .OrderBy(u => (u.transform.position - transform.position).sqrMagnitude)
                     .FirstOrDefault();
             }
@@ -170,7 +180,7 @@ namespace Combat
             foreach (var u in all)
             {
                 if (!u || u == this || u.IsDead) continue;
-                if (u.team == team) continue;
+                if (!IsHostile(this, u)) continue;
                 float sq = (u.transform.position - transform.position).sqrMagnitude;
                 if (sq < best && sq <= _motor.sightRadius * _motor.sightRadius) { best = sq; bestU = u; }
             }

@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Sword
   weaponClass: 1
+  description: A plain, honest blade. Balanced and quick, with nothing clever about
+    it. One-handed fighters land more critical hits the more they train with it.
   visualPrefab: {fileID: 7882270492948079268, guid: 574fccf51411c334fb502dffcbdd5054, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 25
@@ -25,3 +27,5 @@ MonoBehaviour:
   - {fileID: -8653722278162725603, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 7464a6a50ccb0404791bc68881a0e5e7, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

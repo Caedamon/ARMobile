@@ -13,6 +13,8 @@ namespace Weaponary
         [Header("Identity")]
         public string displayName = "Weapon";
         public WeaponClass weaponClass = WeaponClass.OneHand;
+        [Tooltip("Shown on the Armoury pages of the Book (right page, under the stats). Tools > Kaiju > Book > Set Up Index, Stats and Armoury fills empty ones.")]
+        [TextArea(3, 8)] public string description = "";
 
         [Header("Visuals")]
         [Tooltip("Model shown on the floor and in the right hand.")]

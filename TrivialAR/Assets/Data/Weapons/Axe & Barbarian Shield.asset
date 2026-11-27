@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Axe & Barbarian Shield
   weaponClass: 4
+  description: A rough axe and a rough shield, made for people who do not plan to
+    retreat. A solid mix of attack and defence.
   visualPrefab: {fileID: 7957021579786586840, guid: ed683ff9d6ff4b54ebf833afde73ae41, type: 3}
   offhandVisualPrefab: {fileID: 6776807723527391380, guid: 094f304dadf00df49a0b53555768a330, type: 3}
   baseDamage: 27

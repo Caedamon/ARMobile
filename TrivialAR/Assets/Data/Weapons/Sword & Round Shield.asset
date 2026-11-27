@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Sword & Round Shield
   weaponClass: 4
+  description: A sword and a wooden round shield that turns a blow aside with a dull
+    thud. Sword and shield fighters block more often the more they train.
   visualPrefab: {fileID: 7882270492948079268, guid: 574fccf51411c334fb502dffcbdd5054, type: 3}
   offhandVisualPrefab: {fileID: 6611872783625051003, guid: 00d7c19b4c4e1734093a7fdc16e53418, type: 3}
   baseDamage: 24

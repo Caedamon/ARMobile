@@ -35,6 +35,8 @@ namespace Combat
         [Header("Extra states (added to the controller by the setup tool)")]
         public AnimationClip pickupClip;
         public AnimationClip spawnClip;
+        [Tooltip("Optional. Played INSTEAD of the Spawn Clip when the fighter arrives through a portal (it carries the fall). Filled in by Tools > Kaiju > Arrival > Set Up Arrival.")]
+        public AnimationClip spawnAirClip;
         public bool controllerHasPickup;
         public bool controllerHasSpawn;
 

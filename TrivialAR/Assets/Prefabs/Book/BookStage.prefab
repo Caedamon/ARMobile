@@ -84,6 +84,102 @@ MonoBehaviour:
   gravePagePrefab: {fileID: 6008077959377190240, guid: 877ae8860b5d6a54fa24ac085f69b825, type: 3}
   blankPagePrefab: {fileID: 8568951971851058185, guid: 58e80b3c1ccff7448988efaa5af3490c, type: 3}
   pageMaterialTemplate: {fileID: 2100000, guid: 50adf31fba8d3684d9f06b6f29dfad50, type: 2}
+  indexPagePrefab: {fileID: 4183359089722329133, guid: 947d398c30d0f3b49be7ecddf08fe49c, type: 3}
+  textPagePrefab: {fileID: 8773010017735470590, guid: 0153ef1368563924aa1870d920f0ff68, type: 3}
+  weaponPicturePagePrefab: {fileID: 1325512461368271170, guid: 6750c24c61918004abdafb4c60d76785, type: 3}
+  weaponInfoPagePrefab: {fileID: 4912136040389239466, guid: 1607d1c4378265040942fc4e8b1236c8, type: 3}
+  weapons:
+  - {fileID: 11400000, guid: beeae2d4e20cf124881739f83208d33d, type: 2}
+  - {fileID: 11400000, guid: 7f5265db0840df746b573fec4f8b5daa, type: 2}
+  - {fileID: 11400000, guid: 2c4b62270ddff954b88d9f0f6de0d0e5, type: 2}
+  - {fileID: 11400000, guid: d2086e78d25a5ab43804fcd6639400db, type: 2}
+  - {fileID: 11400000, guid: 642272075654c1049acc4e05c36cbda2, type: 2}
+  - {fileID: 11400000, guid: 6add68115e6b7214eb037b91a13eb8bd, type: 2}
+  - {fileID: 11400000, guid: a1f2b3e7554ef0c4a81c1ff4efa598eb, type: 2}
+  - {fileID: 11400000, guid: f581acb66a57edc4c95d77a73b7117a9, type: 2}
+  - {fileID: 11400000, guid: a4705dbdf2e478c4a9e792b252ad7b56, type: 2}
+  - {fileID: 11400000, guid: 731c81f8c77a80a40ba481bac402f8d9, type: 2}
+  - {fileID: 11400000, guid: 1dfcee1795c21fc40921050934eb1ed0, type: 2}
+  - {fileID: 11400000, guid: c2f3c3d2bb2b392459f79b1600b093a4, type: 2}
+  - {fileID: 11400000, guid: 038d20084a8d0654b846630bcf1652d6, type: 2}
+  - {fileID: 11400000, guid: 27dbe86a1eb4b48428228a20232c2f54, type: 2}
+  statsTexts:
+  - title: Stats
+    entries:
+    - heading: MIGHT
+      body: 'Raw strength and toughness.
+
+
+        Every point makes each hit land
+        about 5% harder AND adds 16 hit points to the health bar.'
+    - heading: EGO
+      body: 'Stubborn pride and stage presence.
+
+
+        Every point gives a 4%
+        chance to shrug off most of the knockback in the middle of an attack. Proud
+        fighters also lean toward picking up a shield.'
+  - title: Stats
+    entries:
+    - heading: EDUCATION
+      body: 'Book smarts and training.
+
+
+        Every point adds about 5% more XP
+        from a win and speeds up weapon training by roughly 6%. It does nothing in
+        the swing itself; it pays off over a whole career.'
+    - heading: INSIGHT
+      body: 'Reading the fight.
+
+
+        Every point sharpens crit chance (+0.5%)
+        and crit damage (+1%), attack tempo (+2%), dodge (+2.5%) and shield-block
+        (+3%) chances, and lets a fighter spot loose weapons from further away. Clever
+        fighters like dual wielding.'
+  - title: Weapon training
+    entries:
+    - heading: Every style
+      body: You train a fighting style by landing hits and kills with it (duels train
+        you faster). Every level of training adds +5% damage with that style. The
+        top level is 10.
+    - heading: One-handed
+      body: Each level adds +1.5% chance to land a critical hit.
+    - heading: Sword & shield
+      body: Each level adds +2% chance to block with the shield.
+  - title: Weapon training
+    entries:
+    - heading: Two-handed
+      body: 'Each level adds +3% poise: a big weapon is harder to knock off balance.'
+    - heading: Dual wield
+      body: Each level adds +2% attack speed.
+    - heading: Unarmed
+      body: Each level adds +3% chance to dodge a blow.
+  - title: Levels and fate
+    entries:
+    - heading: Level up
+      body: Every level gives one free stat point. Spend it under Stats on the hub.
+    - heading: Death Match
+      body: The loser dies, and is written into the Memento Mori.
+    - heading: Duel
+      body: Nobody dies. The loser kneels, and you keep your fighter. A good way
+        to train.
+  - title: Luck
+    entries:
+    - heading: LUCK
+      body: 'Some fighters are born lucky and some are not.
+
+
+        Nobody knows
+        exactly what luck does. The book will not say.'
+  graveyardTitle: Memento Mori
+  statsName: Stats
+  armouryName: Armoury
+  weaponFlatMaterial: {fileID: 2100000, guid: dc9eb7a50b9e7154da69ebb75e709863, type: 2}
+  weaponPictureSize: 512
+  weaponPageTextureSize: 512
+  weaponTilt: 20
+  showShieldOutside: 1
+  upsideDownWeapons: []
   bookSizeMeters: 0.6
   facingYaw: 0
   tiltTowardViewer: 12
@@ -107,6 +203,27 @@ MonoBehaviour:
   closeSound: {fileID: 8300000, guid: 518a0a6441d71e045aeca0ed4189076c, type: 3}
   pageTurnSound: {fileID: 8300000, guid: 186cf22ffaae264449e086a0c4206a6d, type: 3}
   soundVolume: 1
+  pageTurnVolume: 1
+  pagesFlippingSound: {fileID: 8300000, guid: 2732880985f568841870c85a2e60994d, type: 3}
+  pagesFlippingVolume: 1
+  manyPages: 4
+  pagesFlippingStart: 0
+  openSoundOffset: -0.06
+  closeSoundOffset: -0.06
+  pageTurnSoundDelay: 0
+  worldTabs: 1
+  tabColors:
+  - {r: 0.55, g: 0.16, b: 0.16, a: 1}
+  - {r: 0.16, g: 0.36, b: 0.62, a: 1}
+  - {r: 0.2, g: 0.5, b: 0.26, a: 1}
+  - {r: 0.36, g: 0.14, b: 0.46, a: 1}
+  tabLength: 0.16
+  tabHeight: 0.075
+  tabGap: 0.02
+  tabTopMargin: 0.06
+  tabLevel: 0.5
+  tabsStartAtTop: 1
+  tabActiveSlide: 0.2
   debugLogs: 0
 --- !u!82 &7967599029427567580
 AudioSource:

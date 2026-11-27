@@ -69,4 +69,15 @@ MonoBehaviour:
     knockbackModelMeters: 0.25
     stagger: 1
     weight: 1
+  - label: 2H!
+    clip: {fileID: -9223009570372283427, guid: aacba81dfc908a2458615989ca24fea3, type: 3}
+    speed: 0.85
+    hitAt: 0.5
+    endAt: 0.92
+    damageMul: 1.2
+    reachMul: 1
+    lungeModelMeters: 0.25
+    knockbackModelMeters: 0.5
+    stagger: 1.2
+    weight: 1
   cooldownRange: {x: 0.5, y: 0.9}

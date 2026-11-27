@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Greataxe
   weaponClass: 2
+  description: The heaviest weapon in the Armoury. One swing can end a fight, and
+    it takes both hands and a lot of nerve.
   visualPrefab: {fileID: 5112358053485447223, guid: 2a73661afcb07a446900600b03e67a5a, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 45
@@ -26,3 +28,5 @@ MonoBehaviour:
   - {fileID: 4710205103915999847, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: 5005478036900451222, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 87e7166dc47ec5a40a84ba8338c30ec4, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

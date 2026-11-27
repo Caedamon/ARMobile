@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.XR.ARFoundation;
 
 namespace Game
@@ -61,7 +62,7 @@ namespace Game
             rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(12f, -90f);
-            rt.sizeDelta = new Vector2(1000f, 700f);
+            rt.sizeDelta = new Vector2(1000f, 900f);
 
             _text = tgo.AddComponent<TextMeshProUGUI>();
             _text.fontSize = 26f;
@@ -107,7 +108,9 @@ namespace Game
             _sb.Append("AR session: ").Append(ARSession.state).Append("   camera permission: ").Append(CameraPermission()).Append('\n');
             _sb.Append("Touchscreen: ").Append(ts != null ? "yes" : "NO").Append("   Mouse: ").Append(mouse != null ? "yes" : "no")
                .Append("   touching now: ").Append(ts != null && ts.primaryTouch.press.isPressed ? "yes" : "no").Append('\n');
-            _sb.Append("State: ").Append(_state != null ? _state() : "?").Append("   presses: ").Append(_pressCount).Append('\n');
+            _sb.Append("State: ").Append(_state != null ? _state() : "?").Append("   presses: ").Append(_pressCount)
+               .Append("   scene: ").Append(SceneManager.GetActiveScene().name).Append('\n');
+            _sb.Append(GameUI.DebugInfo()).Append('\n');
 
             var es = EventSystem.current;
             _sb.Append("EventSystem: ").Append(es != null ? es.name : "NONE");
@@ -137,7 +140,7 @@ namespace Game
                 _sb.Append("Tap the screen once to see what is under your finger.\n");
             }
 
-            foreach (var e in _errors) _sb.Append("ERR ").Append(e).Append('\n');
+            foreach (var e in StartupErrorCapture.Recent) _sb.Append("ERR ").Append(e).Append('\n');
             _text.text = _sb.ToString();
         }
 

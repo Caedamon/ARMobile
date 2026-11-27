@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Spear
   weaponClass: 2
+  description: 'Reach is the whole idea: hit them before they can hit you. Two-handed,
+    so a trained fighter hardly flinches when struck.'
   visualPrefab: {fileID: 4684735268686508054, guid: 9be8ab039a9e3f0449dfea54ee1cf123, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 32
@@ -23,3 +25,5 @@ MonoBehaviour:
   - {fileID: -3183232228448455838, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: 5005478036900451222, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 87e7166dc47ec5a40a84ba8338c30ec4, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

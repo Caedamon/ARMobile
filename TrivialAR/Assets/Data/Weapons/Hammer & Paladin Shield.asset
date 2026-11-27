@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Hammer & Paladin Shield
   weaponClass: 4
+  description: A holy hammer and a wooden paladin shield. It hits hard for a shield
+    fighter, and the shield soaks up the rest.
   visualPrefab: {fileID: 6078755497004322357, guid: 73c0f6a6621503d4689e094395302a2a, type: 3}
   offhandVisualPrefab: {fileID: 3103221982161204790, guid: 5a29636fb2ccddd459d48c15cc643ed3, type: 3}
   baseDamage: 29

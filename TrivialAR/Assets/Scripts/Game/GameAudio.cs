@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
 namespace Game
@@ -86,6 +88,19 @@ namespace Game
             Instance().PlayInternal(clip, volume, pitch, delaySeconds);
         }
 
+        /// <summary>
+        /// A voice line. Normal voices (and styles without effects) go through the normal pool; Undead / Robot voices go through their own
+        /// small pool whose sources carry the sound filters, set from the VoiceLook every time (so edits in Play mode are heard).
+        /// </summary>
+        public static void PlayVoice(AudioClip clip, float volume, float pitch, float delaySeconds, VoiceStyle style, VoiceLook look)
+        {
+            if (clip == null || !Application.isPlaying) return;
+            if (volume * EffectsGain <= 0.0005f) return;
+            var inst = Instance();
+            if (look == null || !look.UsesEffects) inst.PlayInternal(clip, volume, pitch, delaySeconds);
+            else inst.PlayStyled(clip, volume, pitch, delaySeconds, style, look);
+        }
+
         /// <summary>The short sample played when the Effects slider is let go.</summary>
         public static void PlayPreview()
         {
@@ -158,6 +173,75 @@ namespace Game
         void OnDestroy()
         {
             if (_inst == this) _inst = null;
+        }
+
+        // Sources with sound filters, one small pool per voice style (made the first time that style is heard).
+        sealed class StyledSource
+        {
+            public AudioSource source;
+            public AudioLowPassFilter lowPass;
+            public AudioDistortionFilter distortion;
+            public AudioEchoFilter echo;
+            public AudioChorusFilter chorus;
+            public AudioReverbFilter reverb;
+            public float busyUntil;
+        }
+
+        readonly Dictionary<VoiceStyle, StyledSource[]> _styled = new Dictionary<VoiceStyle, StyledSource[]>();
+        const int StyledVoices = 3;
+
+        StyledSource[] StyledPool(VoiceStyle style)
+        {
+            StyledSource[] pool;
+            if (_styled.TryGetValue(style, out pool)) return pool;
+
+            pool = new StyledSource[StyledVoices];
+            for (int i = 0; i < pool.Length; i++)
+            {
+                var go = new GameObject("Voice " + style + " " + i);
+                go.transform.SetParent(transform, false);
+                var q = new StyledSource();
+                q.source = go.AddComponent<AudioSource>();
+                q.source.playOnAwake = false;
+                q.source.spatialBlend = 0f;
+                q.lowPass = go.AddComponent<AudioLowPassFilter>();
+                q.distortion = go.AddComponent<AudioDistortionFilter>();
+                q.echo = go.AddComponent<AudioEchoFilter>();
+                q.chorus = go.AddComponent<AudioChorusFilter>();
+                q.reverb = go.AddComponent<AudioReverbFilter>();
+                pool[i] = q;
+            }
+            _styled[style] = pool;
+            return pool;
+        }
+
+        void PlayStyled(AudioClip clip, float volume, float pitch, float delay, VoiceStyle style, VoiceLook look)
+        {
+            var pool = StyledPool(style);
+            float now = Time.unscaledTime;
+            StyledSource q = null;
+            foreach (var p in pool) if (p.busyUntil <= now) { q = p; break; }
+            if (q == null) { q = pool[0]; foreach (var p in pool) if (p.busyUntil < q.busyUntil) q = p; }   // all busy: take the one finishing first
+
+            q.lowPass.enabled = look.lowPass;
+            if (look.lowPass) q.lowPass.cutoffFrequency = look.lowPassHz;
+            q.distortion.enabled = look.distortion;
+            if (look.distortion) q.distortion.distortionLevel = look.distortionLevel;
+            q.echo.enabled = look.echo;
+            if (look.echo) { q.echo.delay = look.echoDelayMs; q.echo.decayRatio = look.echoDecay; q.echo.wetMix = look.echoWet; q.echo.dryMix = 1f; }
+            q.chorus.enabled = look.chorus;
+            if (look.chorus) { q.chorus.depth = look.chorusDepth; q.chorus.rate = look.chorusRate; q.chorus.dryMix = 0.6f; q.chorus.wetMix1 = 0.4f; q.chorus.wetMix2 = 0.4f; q.chorus.wetMix3 = 0f; }
+            q.reverb.enabled = look.reverb;
+            if (look.reverb) q.reverb.reverbPreset = look.reverbPreset;
+
+            var s = q.source;
+            s.Stop();
+            s.clip = clip;
+            s.volume = Mathf.Clamp01(volume * EffectsGain);
+            s.pitch = pitch;
+            // leave room after the clip for echo / reverb tails
+            q.busyUntil = now + Mathf.Max(0f, delay) + clip.length / Mathf.Max(0.1f, Mathf.Abs(pitch)) + 0.6f;
+            if (delay > 0.005f) s.PlayDelayed(delay); else s.Play();
         }
 
         void PlayInternal(AudioClip clip, float volume, float pitch, float delay)

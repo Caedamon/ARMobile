@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Axe
   weaponClass: 1
+  description: A woodcutter's axe that found a better job. It hits a little harder
+    than a sword and comes down with a heavy chop. One-handed, so critical hits improve
+    with training.
   visualPrefab: {fileID: 7957021579786586840, guid: ed683ff9d6ff4b54ebf833afde73ae41, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 28
@@ -25,3 +28,5 @@ MonoBehaviour:
   - {fileID: -8653722278162725603, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 7464a6a50ccb0404791bc68881a0e5e7, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

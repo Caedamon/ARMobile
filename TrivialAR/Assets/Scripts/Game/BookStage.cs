@@ -5,14 +5,16 @@ using echo17.EndlessBook;
 using Fighters;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Weaponary;
 using BookComponent = echo17.EndlessBook.EndlessBook;
 
 namespace Game
 {
     /// <summary>
     /// The AR Book on the table (a stage, like the roster and the tombstone).
-    /// It draws each page prefab (FighterPage, GravePage, BlankPage) into a texture, hands the textures to the
+    /// It draws each page prefab (Fighter, Index, Grave, Text, WeaponPicture, WeaponInfo, Blank) into a texture, hands the textures to the
     /// EndlessBook as page materials, then opens the book. Layout lives in the prefabs; size and facing are the
     /// fields below, so you can tune the book in the Inspector without touching code.
     /// </summary>
@@ -28,6 +30,34 @@ namespace Game
         [SerializeField] GameObject blankPagePrefab;
         [Tooltip("A copy of this material is made for every page. The EndlessBook 'PageFront' material works.")]
         [SerializeField] Material pageMaterialTemplate;
+
+        [Header("Index, Stats and Armoury pages (set by Tools > Kaiju > Book > Set Up Index, Stats and Armoury)")]
+        [SerializeField] IndexPageView indexPagePrefab;
+        [SerializeField] TextPageView textPagePrefab;
+        [SerializeField] WeaponPicturePageView weaponPicturePagePrefab;
+        [SerializeField] WeaponInfoPageView weaponInfoPagePrefab;
+        [Tooltip("Every weapon of the Armoury, in the order shown (two pages each: picture on the left, stats and description on the right).")]
+        [SerializeField] List<WeaponDefinition> weapons = new List<WeaponDefinition>();
+        [Tooltip("The words on the Stats pages (up to 3 headings per page). Change them here; the numbers come from the combat balance, so keep them in step.")]
+        [SerializeField] BookTextPage[] statsTexts = BookTexts.DefaultStats();
+        [Tooltip("Names shown in the Index (and on the tabs under the book, see GameUI > Book Tab Names). Memento Mori = remember that you will die.")]
+        [SerializeField] string graveyardTitle = "Memento Mori";
+        [SerializeField] string statsName = "Stats";
+        [SerializeField] string armouryName = "Armoury";
+
+        [Header("Weapon pictures")]
+        [Tooltip("A material with an Unlit shader (URP/Unlit). The weapon pictures are drawn flat with it. Made by the setup tool; keeping it here also makes sure the shader is in the build.")]
+        [SerializeField] Material weaponFlatMaterial;
+        [Tooltip("Size of the weapon picture in pixels. 512 is plenty.")]
+        [SerializeField] int weaponPictureSize = 512;
+        [Tooltip("The page picture for the weapon (left) page can be smaller than the text pages to save memory.")]
+        [SerializeField] int weaponPageTextureSize = 512;
+        [Tooltip("How far the weapon leans on the page (degrees). 0 = standing straight up.")]
+        [SerializeField, Range(0f, 60f)] float weaponTilt = 20f;
+        [Tooltip("Shield models are built with the inside facing the camera; this turns them around so the OUTSIDE shows. Untick if a shield shows the wrong side.")]
+        [SerializeField] bool showShieldOutside = true;
+        [Tooltip("Weapons whose picture comes out upside down. Type the weapon's name exactly as in its Weapon Definition.")]
+        [SerializeField] List<string> upsideDownWeapons = new List<string>();
 
         [Header("Size and facing (tune these)")]
         [Tooltip("Length of the longest side of the CLOSED book on the table, in metres. The open book is about 1.5x wider.")]
@@ -74,6 +104,13 @@ namespace Game
         [SerializeField, Range(0f, 1f)] float soundVolume = 1f;
         [Tooltip("The page turn clip is much quieter than the open/close clips. 1 is the loudest it can go here.")]
         [SerializeField, Range(0f, 1f)] float pageTurnVolume = 1f;
+        [Tooltip("Played when the book turns MANY pages at once (a tab, a jump). Set by Tools > Kaiju > Book > Set Up Book Flip Sound ('PagesFlipping').")]
+        [SerializeField] AudioClip pagesFlippingSound;
+        [SerializeField, Range(0f, 1f)] float pagesFlippingVolume = 1f;
+        [Tooltip("A jump of at least this many pages plays the flipping sound instead of the single page turn.")]
+        [SerializeField] int manyPages = 4;
+        [Tooltip("Where in the flipping clip to start (seconds). The clip has one sharp click at 1.0 s; set this to 1.1 to start after it.")]
+        [SerializeField] float pagesFlippingStart = 0f;
 
         [Header("Sound timing (seconds)")]
         [Tooltip("Relative to the moment the opening book touches the table (the end of the open animation). The thud in the clip lands 0.06 s after it starts, so -0.06 puts the thud exactly on the landing. More negative = earlier, positive = later.")]
@@ -82,6 +119,30 @@ namespace Game
         [SerializeField] float closeSoundOffset = -0.06f;
         [Tooltip("Delay after a page starts turning. The swoosh in the clip builds up for about half a second, so 0 lands it late in the turn.")]
         [SerializeField] float pageTurnSoundDelay = 0f;
+
+        [Header("Side tabs (bookmarks)")]
+        [Tooltip("Bookmarks on the edge of the open book, one under the other: Index, Stats, Armoury, Memento Mori. Each belongs to the first page of its section: on the left edge once you have turned to or past that page, on the right edge before. They turn over with the page. Tap one to go there. Untick to use the buttons under the book instead.")]
+        [SerializeField] bool worldTabs = true;
+        [Tooltip("Tab colours, in book order: Index, Stats, Armoury, Memento Mori.")]
+        [SerializeField] Color[] tabColors =
+        {
+            new Color(0.55f, 0.16f, 0.16f, 1f), new Color(0.16f, 0.36f, 0.62f, 1f),
+            new Color(0.20f, 0.50f, 0.26f, 1f), new Color(0.36f, 0.14f, 0.46f, 1f)
+        };
+        [Tooltip("How far a tab sticks out, as a fraction of the open book's width.")]
+        [SerializeField] float tabLength = 0.16f;
+        [Tooltip("Height of a tab along the book's edge, as a fraction of the page height.")]
+        [SerializeField] float tabHeight = 0.075f;
+        [Tooltip("Gap between tabs, as a fraction of the page height.")]
+        [SerializeField] float tabGap = 0.02f;
+        [Tooltip("Gap above the first tab, as a fraction of the page height.")]
+        [SerializeField] float tabTopMargin = 0.06f;
+        [Tooltip("Where on the book's thickness the tabs sit: 0 = bottom of the book, 1 = top.")]
+        [SerializeField, Range(0f, 1f)] float tabLevel = 0.5f;
+        [Tooltip("Tabs start at the top edge of the page and go down. Untick if they start at the bottom.")]
+        [SerializeField] bool tabsStartAtTop = true;
+        [Tooltip("How far the tab of the section you are in slides out (fraction of tab length).")]
+        [SerializeField] float tabActiveSlide = 0.2f;
 
         [Header("Debug")]
         [SerializeField] bool debugLogs = false;
@@ -123,7 +184,8 @@ namespace Game
         {
             if (!CanTurnForward) return;
             PlayAt(pageTurnSound, pageTurnSoundDelay, pageTurnVolume);
-            book.TurnForward(turnSeconds, onCompleted: (a, b, c) => Raise(PageChanged));
+            _turnDur = turnSeconds;
+            book.TurnForward(turnSeconds, onCompleted: (a, b, c) => Raise(PageChanged), onPageTurnStart: OnSheetTurn);
             Raise(PageChanged);
         }
 
@@ -131,7 +193,31 @@ namespace Game
         {
             if (!CanTurnBack) return;
             PlayAt(pageTurnSound, pageTurnSoundDelay, pageTurnVolume);
-            book.TurnBackward(turnSeconds, onCompleted: (a, b, c) => Raise(PageChanged));
+            _turnDur = turnSeconds;
+            book.TurnBackward(turnSeconds, onCompleted: (a, b, c) => Raise(PageChanged), onPageTurnStart: OnSheetTurn);
+            Raise(PageChanged);
+        }
+
+        public enum Section { Index, Stats, Armoury, Graveyard }
+
+        readonly int[] _sectionPage = new int[4];
+
+        /// <summary>Turns to the first page of a section (the tabs under the book).</summary>
+        public void JumpTo(Section section)
+        {
+            if (!IsOpen || IsBusy) return;
+            int page = _sectionPage[(int)section];
+            if (page < 1) return;
+
+            int away = Mathf.Abs(page - book.CurrentLeftPageNumber);
+            if (away < 2) { book.SetPageNumber(page); Raise(PageChanged); return; }   // already looking at it
+
+            float seconds = Mathf.Clamp(away * 0.05f, 0.6f, 1.6f);
+            if (pagesFlippingSound != null && away >= manyPages) PlayFlipping(seconds);   // many pages at once: the 'flipping' sound
+            else PlayAt(pageTurnSound, pageTurnSoundDelay, pageTurnVolume);
+            int sheets = Mathf.Max(1, away / 2);
+            _turnDur = seconds / (((sheets - 1f) / Mathf.Max(1, book.MaxPagesTurningCount)) + 1f);   // how long ONE sheet takes (same formula as the book)
+            book.TurnToPage(page, BookComponent.PageTurnTimeTypeEnum.TotalTurnTime, seconds, onCompleted: (a, b, c) => Raise(PageChanged), onPageTurnStart: OnSheetTurn);
             Raise(PageChanged);
         }
 
@@ -160,6 +246,7 @@ namespace Game
             // 1. what goes on each page
             var specs = BuildSpecs(current, fallen);
             _pageCount = specs.Count;
+            MeasureWeapons();
             if (debugLogs) Debug.Log("[Book] " + _pageCount + " pages (" + (fallen != null ? fallen.Count : 0) + " fallen)");
 
             // 2. draw them
@@ -193,25 +280,51 @@ namespace Game
             while (!done && Time.unscaledTime < timeout) yield return null;
 
             IsOpen = true;
+            BuildTabs();
             if (debugLogs) Debug.Log("[Book] Open. state=" + book.CurrentState + " page=" + book.CurrentPageNumber);
             Raise(Opened);
             Raise(PageChanged);
         }
 
-        enum Kind { Fighter, Grave, Empty, Blank }
+        enum Kind { Fighter, Grave, Empty, Blank, Index, Text, WeaponPicture, WeaponInfo }
 
         struct Spec
         {
             public Kind kind;
             public FighterData fighter;
             public FallenFighter fallen;
+            public BookTextPage text;
+            public WeaponDefinition weapon;
         }
 
+        // Page 1 (left): your fighter.  Page 2 (right): the Index.  Then: Stats, Armoury, Memento Mori (the graveyard, last, because it only grows).
+        // Every section starts on a left page, so each one opens as a fresh spread.
         List<Spec> BuildSpecs(FighterData current, List<FallenFighter> fallen)
         {
             var list = new List<Spec>();
             list.Add(current != null ? new Spec { kind = Kind.Fighter, fighter = current } : new Spec { kind = Kind.Blank });
+            list.Add(new Spec { kind = Kind.Index });
+            _sectionPage[(int)Section.Index] = 1;
 
+            _sectionPage[(int)Section.Stats] = list.Count + 1;
+            if (statsTexts != null)
+                foreach (var p in statsTexts)
+                    if (p != null) list.Add(new Spec { kind = Kind.Text, text = p });
+            Pad(list);
+
+            _sectionPage[(int)Section.Armoury] = list.Count + 1;
+            int weaponCount = 0;
+            foreach (var w in weapons)
+            {
+                if (w == null) continue;
+                list.Add(new Spec { kind = Kind.WeaponPicture, weapon = w });
+                list.Add(new Spec { kind = Kind.WeaponInfo, weapon = w });
+                weaponCount++;
+            }
+            if (weaponCount == 0) list.Add(new Spec { kind = Kind.Blank });
+            Pad(list);
+
+            _sectionPage[(int)Section.Graveyard] = list.Count + 1;
             int shown = 0;
             if (fallen != null)
             {
@@ -219,9 +332,35 @@ namespace Game
                     list.Add(new Spec { kind = Kind.Grave, fallen = fallen[i] });
             }
             if (shown == 0) list.Add(new Spec { kind = Kind.Empty });
-
-            if (list.Count % 2 == 1) list.Add(new Spec { kind = Kind.Blank });   // the book needs pairs of pages
+            Pad(list);
             return list;
+        }
+
+        static void Pad(List<Spec> list)
+        {
+            if (list.Count % 2 == 1) list.Add(new Spec { kind = Kind.Blank });   // the book needs pairs of pages
+        }
+
+        // The biggest damage / reach / speed in the Armoury: the bars on the weapon pages are shown against these.
+        float _maxDamage = 1f, _maxReach = 1f, _maxSpeed = 1f;
+
+        void MeasureWeapons()
+        {
+            _maxDamage = _maxReach = _maxSpeed = 1f;
+            foreach (var w in weapons)
+            {
+                if (w == null) continue;
+                float d, r, s;
+                WeaponInfoPageView.Measure(w, out d, out r, out s);
+                _maxDamage = Mathf.Max(_maxDamage, d);
+                _maxReach = Mathf.Max(_maxReach, r);
+                _maxSpeed = Mathf.Max(_maxSpeed, s);
+            }
+        }
+
+        bool IsUpsideDown(WeaponDefinition w)
+        {
+            return w != null && upsideDownWeapons != null && upsideDownWeapons.Contains(w.displayName);
         }
 
         // ------------------------------------------------------------------ drawing a page to a texture
@@ -241,9 +380,7 @@ namespace Game
             _cam.allowMSAA = false;
             _cam.enabled = false;           // we call Render() ourselves
 
-            _rt = new RenderTexture(pageTextureSize, pageTextureSize, 16, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-            _rt.useMipMap = false;
-            _rt.Create();
+            EnsureRenderTexture(pageTextureSize);
 
             // A square canvas filled with the page colour. Each page prefab is placed in its left pageContentWidth part.
             var sheetGo = new GameObject("PageSheet", typeof(RectTransform));
@@ -272,6 +409,16 @@ namespace Game
             _sheet = (RectTransform)sheetGo.transform;
         }
 
+        // One render texture at a time; a new one is made when a page needs a different size.
+        void EnsureRenderTexture(int size)
+        {
+            if (_rt != null && _rt.width == size) return;
+            if (_rt != null) { _rt.Release(); Destroy(_rt); }
+            _rt = new RenderTexture(size, size, 16, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            _rt.useMipMap = false;
+            _rt.Create();
+        }
+
         void DisposeCamera()
         {
             if (_cam != null) Destroy(_cam.gameObject);
@@ -290,8 +437,18 @@ namespace Game
                 case Kind.Fighter: prefab = fighterPagePrefab != null ? fighterPagePrefab.gameObject : blankPagePrefab; break;
                 case Kind.Grave:
                 case Kind.Empty:   prefab = gravePagePrefab != null ? gravePagePrefab.gameObject : blankPagePrefab; break;
+                case Kind.Index:         prefab = indexPagePrefab != null ? indexPagePrefab.gameObject : blankPagePrefab; break;
+                case Kind.Text:          prefab = textPagePrefab != null ? textPagePrefab.gameObject : blankPagePrefab; break;
+                case Kind.WeaponPicture: prefab = weaponPicturePagePrefab != null ? weaponPicturePagePrefab.gameObject : blankPagePrefab; break;
+                case Kind.WeaponInfo:    prefab = weaponInfoPagePrefab != null ? weaponInfoPagePrefab.gameObject : blankPagePrefab; break;
                 default:           prefab = blankPagePrefab; break;
             }
+
+            // The weapon (left) pages can be a smaller picture than the text pages.
+            int size = pageTextureSize;
+            if (spec.kind == Kind.WeaponPicture && weaponPageTextureSize > 0) size = Mathf.Min(pageTextureSize, weaponPageTextureSize);
+            EnsureRenderTexture(size);
+            Texture2D weaponPicture = null;
 
             GameObject go = null;
             if (prefab != null)
@@ -324,6 +481,27 @@ namespace Game
                     else gp.FillEmpty();
                 }
 
+                var ip = go.GetComponent<IndexPageView>();
+                if (ip != null)
+                {
+                    var names = new List<string> { statsName, armouryName, graveyardTitle };
+                    var pages = new List<int> { _sectionPage[(int)Section.Stats], _sectionPage[(int)Section.Armoury], _sectionPage[(int)Section.Graveyard] };
+                    ip.Fill(names, pages);
+                }
+                var tp = go.GetComponent<TextPageView>();
+                if (tp != null && spec.text != null) tp.Fill(spec.text);
+                var wp = go.GetComponent<WeaponPicturePageView>();
+                if (wp != null)
+                {
+                    string problem;
+                    weaponPicture = WeaponSnapshot.Take(transform, spec.weapon, weaponFlatMaterial, Mathf.Max(64, weaponPictureSize), weaponTilt, IsUpsideDown(spec.weapon), showShieldOutside, out problem);
+                    if (weaponPicture == null && spec.weapon != null)
+                        Debug.LogWarning("[Book] No picture for '" + spec.weapon.displayName + "': " + problem, this);
+                    wp.Fill(spec.weapon, weaponPicture);
+                }
+                var wi = go.GetComponent<WeaponInfoPageView>();
+                if (wi != null && spec.weapon != null) wi.Fill(spec.weapon, _maxDamage, _maxReach, _maxSpeed);
+
                 foreach (var t in go.GetComponentsInChildren<TMP_Text>(true)) t.ForceMeshUpdate();
                 for (int i = 0; i < Mathf.Max(1, settleFrames); i++) yield return null;
                 foreach (var t in go.GetComponentsInChildren<TMP_Text>(true)) t.ForceMeshUpdate();
@@ -334,10 +512,10 @@ namespace Game
             _cam.Render();
 
             // Copy into a normal texture so the page survives the phone losing its graphics memory (app switch).
-            var tex = new Texture2D(pageTextureSize, pageTextureSize, TextureFormat.RGBA32, true);
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, true);
             var prev = RenderTexture.active;
             RenderTexture.active = _rt;
-            tex.ReadPixels(new Rect(0, 0, pageTextureSize, pageTextureSize), 0, 0);
+            tex.ReadPixels(new Rect(0, 0, size, size), 0, 0);
             tex.Apply(true, true);          // build mipmaps, free the CPU copy
             RenderTexture.active = prev;
             _cam.targetTexture = null;
@@ -347,6 +525,7 @@ namespace Game
             _textures.Add(tex);
 
             if (go != null) Destroy(go);
+            if (weaponPicture != null) Destroy(weaponPicture);   // it is baked into the page now
 
             _materials.Add(MakePageMaterial(tex, pageNumber));
         }
@@ -445,6 +624,295 @@ namespace Game
             }
             if (!any) return 0f;
             return Mathf.Max(b.size.x, b.size.z);
+        }
+
+        // ------------------------------------------------------------------ many pages at once: the flipping sound
+        AudioSource _flipSource;
+        Coroutine _flipRoutine;
+
+        void PlayFlipping(float seconds)
+        {
+            if (_flipRoutine != null) StopCoroutine(_flipRoutine);
+            _flipRoutine = StartCoroutine(FlippingRoutine(seconds));
+        }
+
+        // Plays the clip for as long as the pages are turning and fades it out at the end (the clip is 3.85 s, the turn is 0.6 - 1.6 s).
+        IEnumerator FlippingRoutine(float seconds)
+        {
+            if (_flipSource == null)
+            {
+                _flipSource = gameObject.AddComponent<AudioSource>();
+                _flipSource.playOnAwake = false;
+                _flipSource.spatialBlend = 0f;
+            }
+            float volume = soundVolume * pagesFlippingVolume * GameAudio.EffectsGain;
+            float start = Mathf.Clamp(pagesFlippingStart, 0f, Mathf.Max(0f, pagesFlippingSound.length - 0.5f));
+            _flipSource.clip = pagesFlippingSound;
+            _flipSource.time = start;
+            _flipSource.volume = volume;
+            _flipSource.Play();
+
+            float total = Mathf.Min(seconds + 0.15f, pagesFlippingSound.length - start);
+            float fade = Mathf.Min(0.35f, total * 0.5f);
+            for (float t = 0f; t < total; t += Time.deltaTime)
+            {
+                if (t > total - fade) _flipSource.volume = volume * Mathf.Clamp01((total - t) / fade);
+                yield return null;
+            }
+            _flipSource.Stop();
+            _flipRoutine = null;
+        }
+
+        // ------------------------------------------------------------------ side tabs
+        Transform _tabRoot;
+        readonly Transform[] _tabs = new Transform[4];        // the hinge at the spine; turning it carries the tab over to the other side
+        readonly Transform[] _tabBody = new Transform[4];     // the tab itself, out along the hinge
+        readonly Collider[] _tabColliders = new Collider[4];
+        readonly float[] _tabBaseX = new float[4];
+        readonly float[] _angle = new float[4];               // 0 = on the right edge, 180 = on the left edge
+        readonly bool[] _flip = new bool[4];
+        readonly float[] _flipT = new float[4], _flipDur = new float[4], _flipFrom = new float[4], _flipTo = new float[4];
+        float _tabSlideLength;
+        float _turnDur = 0.6f;
+
+        public bool WantsWorldTabs { get { return worldTabs; } }
+        public bool HasWorldTabs { get { return _tabRoot != null; } }
+
+        string TabLabel(int i)
+        {
+            switch (i)
+            {
+                case 0: return "Index";
+                case 1: return statsName;
+                case 2: return armouryName;
+                default: return graveyardTitle;
+            }
+        }
+
+        // Size of everything that is visible now (the open book), in the book's own units.
+        bool MeasureOpenBounds(out Bounds bounds)
+        {
+            bounds = new Bounds();
+            bool any = false;
+            var tr = book.transform;
+            foreach (var r in tr.GetComponentsInChildren<Renderer>(false))
+            {
+                Mesh m = null;
+                var smr = r as SkinnedMeshRenderer;
+                if (smr != null) m = smr.sharedMesh;
+                else
+                {
+                    var mf = r.GetComponent<MeshFilter>();
+                    if (mf != null) m = mf.sharedMesh;
+                }
+                if (m == null) continue;
+
+                var mb = m.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = mb.center + Vector3.Scale(mb.extents,
+                        new Vector3((i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f));
+                    var local = tr.InverseTransformPoint(r.transform.TransformPoint(corner));
+                    if (!any) { bounds = new Bounds(local, Vector3.zero); any = true; }
+                    else bounds.Encapsulate(local);
+                }
+            }
+            return any;
+        }
+
+        void DestroyTabs()
+        {
+            if (_tabRoot != null) Destroy(_tabRoot.gameObject);
+            _tabRoot = null;
+            for (int i = 0; i < 4; i++) { _tabs[i] = null; _tabBody[i] = null; _tabColliders[i] = null; _flip[i] = false; }
+        }
+
+        void BuildTabs()
+        {
+            DestroyTabs();
+            if (!worldTabs || book == null) return;
+
+            Bounds b;
+            if (!MeasureOpenBounds(out b)) { Debug.LogWarning("[Book] Could not measure the open book; the buttons under the book are used instead.", this); return; }
+            if (b.size.x < b.size.z)
+            {
+                Debug.LogWarning("[Book] The open book is taller than wide (" + b.size + "), which is not what the tabs expect; the buttons under the book are used instead.", this);
+                return;
+            }
+
+            float width = b.size.x, pageH = b.size.z;
+            float len = tabLength * width;
+            float h = tabHeight * pageH;
+            float gap = tabGap * pageH;
+            float margin = tabTopMargin * pageH;
+            float thick = h * 0.18f;
+            float y = Mathf.Lerp(b.min.y, b.max.y, tabLevel);
+            _tabSlideLength = tabActiveSlide * len;
+
+            var rootGo = new GameObject("BookTabs");
+            _tabRoot = rootGo.transform;
+            _tabRoot.SetParent(book.transform, false);
+
+            float spine = b.center.x;                          // the hinge line of the book
+            float halfW = b.max.x - spine;
+            float rightX = halfW + len * 0.5f - len * 0.12f;   // a little of the tab is tucked in under the cover
+
+            for (int i = 0; i < 4; i++)
+            {
+                float offset = margin + h * 0.5f + i * (h + gap);
+                float z = tabsStartAtTop ? b.max.z - offset : b.min.z + offset;
+
+                // hinge at the spine, level with the tab; angle 0 = tab out on the right edge, 180 = out on the left edge (it swings up and over, like a page)
+                var hinge = new GameObject("Tab" + i).transform;
+                hinge.SetParent(_tabRoot, false);
+                hinge.localPosition = new Vector3(spine, y, z);
+                _tabs[i] = hinge;
+
+                var body = new GameObject("Body").transform;
+                body.SetParent(hinge, false);
+                body.localPosition = new Vector3(rightX, 0f, 0f);
+                _tabBody[i] = body;
+                _tabBaseX[i] = rightX;
+
+                // the coloured plate
+                var plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                plate.name = "Plate";
+                plate.transform.SetParent(body, false);
+                plate.transform.localScale = new Vector3(len, thick, h);
+                var box = plate.GetComponent<BoxCollider>();
+                if (box != null) { box.size = new Vector3(1.05f, 3f, 1.15f); _tabColliders[i] = box; }   // taller than it looks, easier to hit
+                var rend = plate.GetComponent<Renderer>();
+                if (rend != null)
+                {
+                    rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    var mat = StageMaterials.Make(i < tabColors.Length ? tabColors[i] : Color.grey);
+                    if (mat != null) rend.sharedMaterial = mat;
+                }
+
+                // the name, once on each face, so it reads the right way up on whichever side the tab is lying
+                float lift = thick * 0.5f + thick * 0.06f;
+                MakeTabLabel(body, i, h, len, lift, Quaternion.Euler(90f, 0f, 0f));
+                MakeTabLabel(body, i, h, len, -lift, Quaternion.Euler(0f, 0f, 180f) * Quaternion.Euler(90f, 0f, 0f));
+
+                _angle[i] = TabOnLeft(i) ? 180f : 0f;
+                hinge.localRotation = Quaternion.Euler(0f, 0f, _angle[i]);
+            }
+
+            _tabRoot.gameObject.SetActive(false);   // Update shows them while the book is open and still
+            if (debugLogs) Debug.Log("[Book] Tabs built. Open book (book units): " + b.size + " at " + b.center);
+        }
+
+        void MakeTabLabel(Transform parent, int i, float h, float len, float yLocal, Quaternion rot)
+        {
+            var label = new GameObject("Label", typeof(TextMeshPro));
+            label.transform.SetParent(parent, false);
+            label.transform.localPosition = new Vector3(0f, yLocal, 0f);
+            label.transform.localRotation = rot;
+            label.transform.localScale = Vector3.one * h;
+            var tmp = label.GetComponent<TextMeshPro>();
+            tmp.text = TabLabel(i);
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 0.1f;
+            tmp.fontSizeMax = 100f;
+            tmp.rectTransform.sizeDelta = new Vector2(len * 0.9f / h, 0.78f);
+        }
+
+        // A bookmark sits on the first page of its section. Once the book shows that page (or a later one) on the left, the page has been turned over and
+        // the bookmark lies on the left edge with it; before that it is on the right edge.
+        bool TabOnLeft(int section)
+        {
+            int p = _sectionPage[section];
+            return p > 0 && p <= book.CurrentLeftPageNumber;
+        }
+
+        // Called by the book when a sheet starts turning. The sheet whose back is the first page of a section carries that section's bookmark with it.
+        void OnSheetTurn(Page page, int pageNumberFront, int pageNumberBack, int pageNumberFirstVisible, int pageNumberLastVisible, Page.TurnDirectionEnum direction)
+        {
+            if (_tabRoot == null) return;
+            bool forward = direction == Page.TurnDirectionEnum.TurnForward;
+            for (int i = 0; i < 4; i++)
+            {
+                if (_tabs[i] == null || _sectionPage[i] <= 0) continue;
+                if (_sectionPage[i] != pageNumberBack && _sectionPage[i] != pageNumberFront) continue;
+                _flip[i] = true;
+                _flipT[i] = 0f;
+                _flipDur[i] = Mathf.Max(0.1f, _turnDur);
+                _flipFrom[i] = _angle[i];
+                _flipTo[i] = forward ? 180f : 0f;
+            }
+        }
+
+        int CurrentSection()
+        {
+            int left = book.CurrentLeftPageNumber;
+            int cur = 0;
+            for (int s = 0; s < 4; s++) if (_sectionPage[s] > 0 && left >= _sectionPage[s]) cur = s;
+            return cur;
+        }
+
+        void Update()
+        {
+            if (_tabRoot == null || book == null) return;
+
+            bool show = IsOpen && !_closing && book.CurrentState == BookComponent.StateEnum.OpenMiddle;
+            if (_tabRoot.gameObject.activeSelf != show) _tabRoot.gameObject.SetActive(show);
+            if (!show) return;
+
+            // bookmarks: turn over with their page, then sit on the side their page is on
+            bool turning = book.IsTurningPages;
+            int cur = CurrentSection();
+            for (int i = 0; i < 4; i++)
+            {
+                if (_tabs[i] == null) continue;
+                if (_flip[i])
+                {
+                    _flipT[i] += Time.deltaTime / _flipDur[i];
+                    float u = Mathf.Clamp01(_flipT[i]);
+                    u = u * u * (3f - 2f * u);
+                    _angle[i] = Mathf.Lerp(_flipFrom[i], _flipTo[i], u);
+                    if (_flipT[i] >= 1f) { _flip[i] = false; _angle[i] = _flipTo[i]; }
+                }
+                else if (!turning)
+                {
+                    _angle[i] = TabOnLeft(i) ? 180f : 0f;   // always ends up right, whatever happened
+                }
+                _tabs[i].localRotation = Quaternion.Euler(0f, 0f, _angle[i]);
+
+                // the tab of the section you are in slides out a little
+                var body = _tabBody[i];
+                float targetX = _tabBaseX[i] + (i == cur ? _tabSlideLength : 0f);
+                var lp = body.localPosition;
+                lp.x = Mathf.Lerp(lp.x, targetX, 1f - Mathf.Exp(-14f * Time.deltaTime));
+                body.localPosition = lp;
+            }
+
+            // tap on a tab
+            if (IsBusy) return;
+            Vector2 pos;
+            if (!PointerPressed(out pos)) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            var hits = Physics.RaycastAll(cam.ScreenPointToRay(pos), 50f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            int hit = -1;
+            foreach (var h in hits)
+                for (int i = 0; i < 4; i++)
+                    if (_tabColliders[i] != null && h.collider == _tabColliders[i] && h.distance < best) { best = h.distance; hit = i; }
+            if (hit >= 0) JumpTo((Section)hit);
+        }
+
+        static bool PointerPressed(out Vector2 pos)
+        {
+            pos = default(Vector2);
+            var touch = Touchscreen.current;
+            if (touch != null && touch.primaryTouch.press.wasPressedThisFrame) { pos = touch.primaryTouch.position.ReadValue(); return true; }
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame) { pos = mouse.position.ReadValue(); return true; }
+            return false;
         }
 
         // ------------------------------------------------------------------ closing

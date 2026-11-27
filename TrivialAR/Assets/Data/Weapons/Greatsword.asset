@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Greatsword
   weaponClass: 2
+  description: A huge blade for strong arms. Every hit lands hard and the long reach
+    keeps enemies back. Two-handed fighters become harder to knock off balance with
+    training.
   visualPrefab: {fileID: 1215958244493936621, guid: 58e2776b205335c40be5c07198088f10, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 40
@@ -26,3 +29,5 @@ MonoBehaviour:
   - {fileID: 4710205103915999847, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: 5005478036900451222, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 87e7166dc47ec5a40a84ba8338c30ec4, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

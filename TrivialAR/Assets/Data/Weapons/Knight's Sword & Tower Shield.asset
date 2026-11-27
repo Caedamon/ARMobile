@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Knight's Sword & Tower Shield
   weaponClass: 4
+  description: A knight's sword behind a tall steel tower shield. When it blocks,
+    it rings.
   visualPrefab: {fileID: 4716712336500514737, guid: 3b1010f3dabc4874aaa44790167ed977, type: 3}
   offhandVisualPrefab: {fileID: 3552314190583999119, guid: 9722cfa65a5d9f44dab7caf7467da53a, type: 3}
   baseDamage: 26

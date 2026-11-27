@@ -32,6 +32,7 @@ MonoBehaviour:
   dodgeRight: {fileID: 2188323905074769703, guid: 228c0026515b9c640a54d29f9b20d13a, type: 3}
   pickupClip: {fileID: 4787742288682755051, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
   spawnClip: {fileID: 6802492928670190411, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
+  spawnAirClip: {fileID: 2613239370480212521, guid: d207b6c4e175a5248a4a9f1e6a929775, type: 3}
   controllerHasPickup: 1
   controllerHasSpawn: 1
   blockClip: {fileID: 5428728673001133709, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}

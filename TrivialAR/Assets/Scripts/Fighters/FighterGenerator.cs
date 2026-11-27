@@ -13,12 +13,20 @@ namespace Fighters
         public const int StatMin = 1;
         public const int StatMax = 10;
 
-        static readonly string[] FirstNames =
+        static readonly string[] MaleNames =
         {
-            "Bjorn", "Hrolf", "Sigrid", "Ulf", "Astrid", "Gunnar", "Freya", "Torvald",
-            "Ingrid", "Leif", "Brynja", "Haldor", "Runa", "Eirik", "Solveig", "Knut",
-            "Maren", "Orm", "Thyra", "Vidar", "Yrsa", "Dag", "Hild", "Sten"
+            "Bjorn", "Hrolf", "Ulf", "Gunnar", "Torvald", "Leif", "Haldor", "Eirik",
+            "Knut", "Orm", "Vidar", "Dag", "Sten", "Ragnar", "Sven", "Arvid"
         };
+
+        static readonly string[] FemaleNames =
+        {
+            "Sigrid", "Astrid", "Freya", "Ingrid", "Brynja", "Runa", "Solveig", "Maren",
+            "Thyra", "Yrsa", "Hild", "Gudrun", "Ragna", "Sunniva", "Helga", "Liv"
+        };
+
+        // Epithets that only make sense for men (the rest fit anyone).
+        static readonly string[] MaleOnlyEpithets = { "Blackbeard" };
 
         static readonly string[] Epithets =
         {
@@ -38,9 +46,94 @@ namespace Fighters
             d.luck = (rng.Next(0, 11) + rng.Next(0, 11)) / 2;   // 0-10, bell-shaped
             RollPreferred(d, rng);
             ProgressionRules.GrantProfLevel(d, ProgressionRules.StyleKey(d.preferredClass), ProgressionRules.StartProfLevel(d.tier));
-            d.displayName = FirstNames[rng.Next(FirstNames.Length)] + " " + Epithets[rng.Next(Epithets.Length)];
-            d.modelId = PickModel(catalog, side, rng);
+            d.modelId = PickModel(catalog, side, rng);   // the model comes first: its gender decides which names fit
+            var gender = catalog != null ? catalog.GenderOf(d.modelId, side) : FighterGender.NotSet;
+            if (gender == FighterGender.NotSet) WarnNotSet(d.modelId);
+            d.displayName = RollName(gender, rng);
             return d;
+        }
+
+        static readonly System.Collections.Generic.HashSet<string> Warned = new System.Collections.Generic.HashSet<string>();
+
+        static void WarnNotSet(string modelId)
+        {
+            if (!Warned.Add(modelId ?? "(none)")) return;
+            UnityEngine.Debug.LogWarning("[Names] Model '" + modelId + "' has no gender set on its prefab (Fighter Gender Tag), so it can get any name. Run Tools > Kaiju > Fighters > Set Up Gender Tags.");
+        }
+
+        // Undead and robots get their own kinds of names (undead can still get a normal one like "Ingrid the Hollow").
+        static readonly string[] UndeadTitles =
+        {
+            "Soul-Eater", "the Devourer", "Grave-Warden", "the Unburied", "Bone-Gnawer", "the Hollow One",
+            "Rotmaw", "Dusk-Walker", "the Withered", "Marrowfang", "Cryptkeeper", "the Restless",
+            "Ashen Jaw", "the Forsaken", "Gravewhisper", "the Hungering Dark"
+        };
+
+        static readonly string[] UndeadEpithets =
+        {
+            "the Hollow", "the Unburied", "the Restless", "Gravebound", "the Withered",
+            "Soulless", "Bonechill", "the Risen", "Ashenhand", "the Forsaken"
+        };
+
+        static readonly string[] RobotNames =
+        {
+            "Unit-7", "Clank", "Bolt-9", "Gizmo", "RX-78", "Servo", "Cog", "Vex-3",
+            "Tin", "Axle", "Rivet", "Mk-IV", "Zeta-9", "Piston", "Sprocket", "Beta-12"
+        };
+
+        static readonly string[] RobotEpithets =
+        {
+            "the Rusty", "Overclocked", "the Obsolete", "Ironclad", "Steelheart", "the Tireless",
+            "Gearbreaker", "the Calculated", "Scrapheap", "the Unfeeling", "Sparkplug", "Deadbolt"
+        };
+
+        /// <summary>
+        /// A name that fits the model. Male / Female pick a matching first name; Either (and Not Set) any human name;
+        /// Undead sometimes a human name and sometimes a grim title of its own; Robot a machine name.
+        /// </summary>
+        public static string RollName(FighterGender gender, Random rng)
+        {
+            if (gender == FighterGender.Robot)
+                return RobotNames[rng.Next(RobotNames.Length)] + " " + RobotEpithets[rng.Next(RobotEpithets.Length)];
+
+            if (gender == FighterGender.Undead)
+            {
+                double r = rng.NextDouble();
+                if (r < 0.40) return UndeadTitles[rng.Next(UndeadTitles.Length)];
+                bool grim = r < 0.75;   // "Ingrid the Hollow" (otherwise a normal epithet: "Ingrid Ironjaw")
+                return HumanName(FighterGender.Either, rng, grim);
+            }
+
+            return HumanName(gender, rng, false);
+        }
+
+        /// <summary>True if the name starts with one of the female first names (used to pick a voice for "Either" fighters).</summary>
+        public static bool IsFemaleName(string displayName)
+        {
+            if (string.IsNullOrEmpty(displayName)) return false;
+            string first = displayName.Split(' ')[0];
+            return Array.IndexOf(FemaleNames, first) >= 0;
+        }
+
+        static string HumanName(FighterGender gender, Random rng, bool undeadEpithet)
+        {
+            bool female;
+            string first;
+            if (gender == FighterGender.Male) { female = false; first = MaleNames[rng.Next(MaleNames.Length)]; }
+            else if (gender == FighterGender.Female) { female = true; first = FemaleNames[rng.Next(FemaleNames.Length)]; }
+            else
+            {
+                int i = rng.Next(MaleNames.Length + FemaleNames.Length);
+                female = i >= MaleNames.Length;
+                first = female ? FemaleNames[i - MaleNames.Length] : MaleNames[i];
+            }
+
+            if (undeadEpithet) return first + " " + UndeadEpithets[rng.Next(UndeadEpithets.Length)];
+
+            string epithet;
+            do { epithet = Epithets[rng.Next(Epithets.Length)]; }
+            while (female && Array.IndexOf(MaleOnlyEpithets, epithet) >= 0);
+            return first + " " + epithet;
         }
 
         // From level 4 on, better opponents become more common (shift goes 0..1).

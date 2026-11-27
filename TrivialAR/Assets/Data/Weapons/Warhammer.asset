@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Weaponary.WeaponDefinition
   displayName: Warhammer
   weaponClass: 1
+  description: Made to crack armour and skulls alike. The hardest hitter of the one-handed
+    weapons, and not graceful about it.
   visualPrefab: {fileID: 6078755497004322357, guid: 73c0f6a6621503d4689e094395302a2a, type: 3}
   offhandVisualPrefab: {fileID: 0}
   baseDamage: 30
@@ -25,3 +27,5 @@ MonoBehaviour:
   - {fileID: -8653722278162725603, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   - {fileID: -929289162156707164, guid: 96e4fd5c8dba8244ba33fb769a8a3457, type: 3}
   moveset: {fileID: 11400000, guid: 7464a6a50ccb0404791bc68881a0e5e7, type: 2}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  offhandOffset: {x: 0, y: 0, z: 0}

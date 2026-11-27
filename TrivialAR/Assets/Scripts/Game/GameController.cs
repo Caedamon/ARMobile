@@ -8,10 +8,10 @@ using Weaponary;
 
 namespace Game
 {
-    public enum GameState { Title, Placing, Roster, Hub, Fight, Result, Book }
+    public enum GameState { Title, Placing, Roster, Hub, Fight, Result, Book, Schedule }
 
     /// <summary>
-    /// The game loop:  Title -> (place on table) -> Roster (pick 1 of 3) -> Hub -> Death Match -> Result -> Hub / Roster.
+    /// The game loop:  Title -> (place on table) -> Roster (pick 1 of 3) -> Hub -> Fight Schedule (pick 1 of 3, three times, then a finale) -> Fight -> Result -> Hub / Roster.
     /// Put on one object in the scene (Tools > Kaiju > Game > Setup Game Flow does this).
     /// </summary>
     public sealed class GameController : MonoBehaviour
@@ -49,6 +49,52 @@ namespace Game
         [Tooltip("Hero XP from a lost duel. You still learn something.")]
         public float duelLossXpFactor = 0.2f;
 
+        [Header("Fight schedule")]
+        [Tooltip("Regular fights (pick 1 of 3 each) before the finale.")]
+        public int fightsPerRun = 3;
+        [Tooltip("How many levels above the hero the finale boss is. The boss is also the best tier out of many rolls (Elite if possible).")]
+        public int bossLevelBonus = 2;
+        [Tooltip("Hero XP from winning the boss fight, as a multiple of a normal win against that opponent.")]
+        public float bossXpFactor = 1.5f;
+        [Tooltip("Free stat points for winning the finale (finishing the whole schedule).")]
+        public int championBonusPoints = 1;
+
+        public enum ArenaFloor { Never, WhenNoSurface, Always }
+
+        [Header("Arena floor")]
+        [Tooltip("A dark disc under the fighters. WhenNoSurface = only after 'Place in front of me' (nothing real to stand on, so they would hover in mid-air). Always = also on a real table, like the hub.")]
+        public ArenaFloor arenaFloor = ArenaFloor.WhenNoSurface;
+        public Color arenaFloorColor = new Color(0.10f, 0.11f, 0.15f, 1f);
+
+        [Header("Boss intro (the little film before a Boss fight)")]
+        [Tooltip("A portal opens, the boss walks out, the picture zooms in, the name and BOSS! smash onto the screen, the boss roars. Tap skips it.")]
+        public bool bossIntro = true;
+        public string bossLabel = "BOSS!";
+        public Color bossNameColor = new Color(0.90f, 0.05f, 0.05f, 1f);
+        public Color bossLabelColor = new Color(0.30f, 0.04f, 0.45f, 1f);
+        [Tooltip("Optional. Your own roar recording. Empty = low layered voice sounds from the fighters' sound set.")]
+        public AudioClip bossRoarClip;
+        [Tooltip("Optional. Your own 'smash' sound for the two text hits. Empty = the heavy hit sound, lowered.")]
+        public AudioClip bossSlamClip;
+        [Tooltip("Optional. Sound of the portal opening.")]
+        public AudioClip bossPortalClip;
+
+        [Header("Group fights")]
+        [Tooltip("Group Fight (regular fights): teammates you get besides yourself...")]
+        public int groupFightAllies = 1;
+        [Tooltip("...and the opponents you face.")]
+        public int groupFightFoes = 2;
+        [Tooltip("Group Death Match (finale): teammates besides yourself...")]
+        public int finaleAllies = 2;
+        [Tooltip("...and opponents.")]
+        public int finaleFoes = 3;
+        [Tooltip("Last Hero Standing (finale): how many rivals you fight, all against everyone. 4 = five fighters in all.")]
+        public int lastHeroRivals = 4;
+        [Tooltip("Hero XP for a group win = this x the XP of each defeated opponent added up.")]
+        public float groupXpFactor = 0.7f;
+        [Tooltip("Same for Last Hero Standing.")]
+        public float lastHeroXpFactor = 0.6f;
+
         [Header("Tuning")]
         public int rosterSize = 3;
         [Tooltip("Seconds to let the death animation play before showing the result.")]
@@ -81,6 +127,9 @@ namespace Game
         bool _resultToHub;
         FighterData _lastEnemy;
         FightMode _mode = FightMode.DeathMatch;
+        bool _fromSchedule;                // this fight was picked from the schedule (so winning it moves the run on)
+        FightCard _card;                   // the schedule card being fought (null for the old direct buttons)
+        bool _introPlaying;                // the boss film is on: nobody fights yet
         int[] _profBefore;
         readonly System.Random _rng = new System.Random();
 
@@ -133,6 +182,9 @@ namespace Game
             _ui.BackClicked += OnBack;
             _ui.DeathMatchClicked += OnDeathMatch;
             _ui.DuelClicked += OnDuel;
+            _ui.ScheduleClicked += OnSchedule;
+            _ui.ScheduleBackClicked += OnScheduleBack;
+            _ui.ScheduleCardPicked += OnScheduleCard;
             _ui.StatPointSpent += OnSpendPoint;
             _ui.ResultContinueClicked += OnResultContinue;
             _ui.BookTapped += OnBookTapped;
@@ -140,6 +192,7 @@ namespace Game
             _ui.BookPrevClicked += OnBookPrev;
             _ui.BookNextClicked += OnBookNext;
             _ui.BookCloseClicked += OnBookClose;
+            _ui.BookTabClicked += OnBookTab;
 
             // Remove any overlay that was saved into a prefab by accident, then add a fresh one.
             var oldOverlay = GetComponent<DeviceDebugOverlay>();
@@ -161,6 +214,9 @@ namespace Game
             _ui.BackClicked -= OnBack;
             _ui.DeathMatchClicked -= OnDeathMatch;
             _ui.DuelClicked -= OnDuel;
+            _ui.ScheduleClicked -= OnSchedule;
+            _ui.ScheduleBackClicked -= OnScheduleBack;
+            _ui.ScheduleCardPicked -= OnScheduleCard;
             _ui.StatPointSpent -= OnSpendPoint;
             _ui.ResultContinueClicked -= OnResultContinue;
             _ui.BookTapped -= OnBookTapped;
@@ -168,6 +224,7 @@ namespace Game
             _ui.BookPrevClicked -= OnBookPrev;
             _ui.BookNextClicked -= OnBookNext;
             _ui.BookCloseClicked -= OnBookClose;
+            _ui.BookTabClicked -= OnBookTab;
         }
 
         void SetHud(bool on)
@@ -182,6 +239,7 @@ namespace Game
             {
                 case GameState.Placing:
                     if (_placer.PollTapPlacement()) AfterPlaced();
+                    else _ui.SetPlaceHint(_placer.HintText);
                     break;
                 case GameState.Roster:
                     HandleRosterTap();
@@ -321,7 +379,7 @@ namespace Game
             _roster.Init(catalog, showcaseWeapons);
             _roster.ShowSingle(fighter);
 
-            _ui.ShowHub(fighter, _save != null ? _save.totalWins : 0);
+            ShowHubUi(fighter);
         }
 
         // ------------------------------------------------------------------ book
@@ -378,6 +436,7 @@ namespace Game
             _book.PageChanged += RefreshBookUi;
             _book.Failed += OnBookFailed;
             _ui.ShowBook("Opening the book...", false, false);
+            _ui.SetBookTabButtonsVisible(!_book.WantsWorldTabs);   // the book has its own side tabs (they come back if those could not be built)
 
             if (debugLogs) Debug.Log("[Game] Book placed at " + point + ". Fallen: " + (_save != null && _save.fallen != null ? _save.fallen.Count : 0));
             _book.Open(fighter, _save != null ? _save.fallen : null);
@@ -387,6 +446,7 @@ namespace Game
         {
             if (_state != GameState.Book || _book == null) return;
             _ui.SetBookControls(_book.PageLabel, _book.CanTurnBack, _book.CanTurnForward);
+            if (_book.IsOpen) _ui.SetBookTabButtonsVisible(!_book.HasWorldTabs);
         }
 
         void OnBookPrev()
@@ -399,6 +459,14 @@ namespace Game
         {
             if (_state != GameState.Book || _book == null || _bookClosing) return;
             _book.TurnForward();
+        }
+
+        // A tab under the open book: 0 Index, 1 Memoria Dies, 2 Stats, 3 Armoury (the same order as BookStage.Section).
+        void OnBookTab(int tab)
+        {
+            if (_state != GameState.Book || _book == null || _bookClosing) return;
+            if (tab < 0 || tab > 3) return;
+            _book.JumpTo((BookStage.Section)tab);
         }
 
         void OnBookClose()
@@ -426,7 +494,15 @@ namespace Game
         void BackToHub()
         {
             _state = GameState.Hub;
-            _ui.ShowHub(FighterSession.PlayerFighter, _save != null ? _save.totalWins : 0);
+            ShowHubUi(FighterSession.PlayerFighter);
+        }
+
+        void ShowHubUi(FighterData fighter)
+        {
+            _ui.ShowHub(fighter, _save != null ? _save.totalWins : 0);
+            int done = _save != null && _save.run != null ? _save.run.fightsDone : 0;
+            bool finale = done >= fightsPerRun;
+            _ui.SetScheduleLabel(finale ? "Fight Schedule:  FINALE" : "Fight Schedule:  Fight " + (done + 1) + " of " + fightsPerRun, finale);
         }
 
         void LeaveBook()
@@ -454,6 +530,8 @@ namespace Game
         void OnDeathMatch()
         {
             if (_state != GameState.Hub) return;
+            _fromSchedule = false;
+            _card = null;
             EnterFight(FightMode.DeathMatch);
         }
 
@@ -461,6 +539,8 @@ namespace Game
         void OnDuel()
         {
             if (_state != GameState.Hub) return;
+            _fromSchedule = false;
+            _card = null;
             EnterFight(FightMode.Duel);
         }
 
@@ -489,10 +569,123 @@ namespace Game
             if (debugLogs) Debug.Log("[Game] Spent a point on stat " + stat + ". Left: " + f.statPoints);
         }
 
+        // ------------------------------------------------------------------ fight schedule
+        // Pick 1 of 3 cards, three times, then a finale (pick 1 of 3). The cards (and their opponents) are saved, so closing the game
+        // does not re-roll them. Winning a Death Match or finishing a Duel moves the schedule on; dying ends the hero and the schedule.
+        RunState Run()
+        {
+            if (_save == null) _save = new SaveData();
+            if (_save.run == null) _save.run = new RunState();
+            if (_save.run.cards == null) _save.run.cards = new List<FightCard>();
+            return _save.run;
+        }
+
+        void OnSchedule()
+        {
+            if (_state != GameState.Hub) return;
+            var hero = FighterSession.PlayerFighter;
+            if (hero == null) return;
+
+            var run = Run();
+            if (!run.active || run.cards.Count == 0) RollCards(run, hero);   // first time (or a fresh schedule)
+            EnterSchedule();
+        }
+
+        void RollCards(RunState run, FighterData hero)
+        {
+            run.active = true;
+            run.cards = run.fightsDone >= fightsPerRun
+                ? RunPlanner.RollFinale(catalog, hero, bossLevelBonus, _rng, finaleAllies, finaleFoes, lastHeroRivals)
+                : RunPlanner.RollRegular(catalog, hero, _rng, groupFightAllies, groupFightFoes);
+            if (_save != null) { _save.hasFighter = true; _save.fighter = hero; SaveSystem.Save(_save); }
+            if (debugLogs) Debug.Log("[Game] Rolled " + run.cards.Count + " schedule cards (fights done: " + run.fightsDone + ")");
+        }
+
+        void EnterSchedule()
+        {
+            _state = GameState.Schedule;
+            var hero = FighterSession.PlayerFighter;
+            var run = Run();
+            bool finale = run.fightsDone >= fightsPerRun;
+
+            var preview = new int[3];
+            for (int i = 0; i < 3 && i < run.cards.Count; i++)
+                preview[i] = PreviewXp(run.cards[i], hero);
+
+            _ui.ShowSchedule(finale ? "FINALE" : "FIGHT " + (run.fightsDone + 1) + " OF " + fightsPerRun,
+                             finale ? "Choose your final battle" : "Pick your next opponent",
+                             run.cards, hero, preview);
+        }
+
+        void OnScheduleBack()
+        {
+            if (_state != GameState.Schedule) return;
+            BackToHub();
+        }
+
+        void OnScheduleCard(int index)
+        {
+            if (_state != GameState.Schedule) return;
+            var run = Run();
+            if (index < 0 || index >= run.cards.Count) return;
+            var card = run.cards[index];
+            if (card == null || card.locked || card.enemy == null) return;
+
+            _fromSchedule = true;
+            _card = card;
+            FighterSession.EnemyFighter = card.IsGroup ? null : card.enemy;   // the arena uses this opponent instead of rolling a random one
+            if (debugLogs) Debug.Log("[Game] Schedule pick: " + card.mode + " vs " + card.enemy.Summary() + (card.IsGroup ? "  (+" + (card.foes.Count - 1) + " more, " + card.allies.Count + " allies)" : ""));
+            EnterFight(card.mode, card);
+        }
+
+        // XP a win on this card would give (the same numbers the result screen uses).
+        int PreviewXp(FightCard card, FighterData hero)
+        {
+            if (card == null || card.locked || card.enemy == null || hero == null) return 0;
+            return RewardForCard(card, hero, true);
+        }
+
+        // Group fights pay for every opponent beaten; the others pay for the one opponent.
+        int RewardForCard(FightCard card, FighterData hero, bool won)
+        {
+            if (!card.IsGroup) return RewardFor(card.mode, hero, card.enemy, won);
+
+            float xp = 0f;
+            foreach (var f in card.foes) xp += ProgressionRules.XpReward(hero, f);
+            xp *= card.mode == FightMode.LastHero ? lastHeroXpFactor : groupXpFactor;
+            return Mathf.Max(1, Mathf.RoundToInt(xp));
+        }
+
+        int RewardFor(FightMode mode, FighterData hero, FighterData enemy, bool won)
+        {
+            float xp = ProgressionRules.XpReward(hero, enemy);
+            if (mode == FightMode.Duel) xp *= won ? duelWinXpFactor : duelLossXpFactor;
+            else if (mode == FightMode.Boss) xp *= bossXpFactor;
+            return Mathf.Max(1, Mathf.RoundToInt(xp));
+        }
+
+        // A fight from the schedule was won (or a duel was finished): the next three cards.
+        void AdvanceRun(FighterData hero)
+        {
+            if (!_fromSchedule) return;
+            var run = Run();
+            run.fightsDone++;
+            RollCards(run, hero);
+        }
+
         // ------------------------------------------------------------------ fight
-        void EnterFight(FightMode mode)
+        void EnterFight(FightMode mode, FightCard card = null)
         {
             _mode = mode;
+
+            // group fights: who fights on which side (read by the arena spawner when the arena appears)
+            FighterSession.ClearGroup();
+            if (card != null && card.IsGroup)
+            {
+                FighterSession.Allies.AddRange(card.allies);
+                FighterSession.Foes.AddRange(card.foes);
+                FighterSession.FreeForAll = card.mode == FightMode.LastHero;
+            }
             FighterSession.Mode = mode;   // read by the arena's fighters when they spawn
             _state = GameState.Fight;
             _fightEnding = false;
@@ -505,50 +698,157 @@ namespace Game
 
             var stage = _placer.InstantiateStage(arenaPrefab);
             _arena = stage != null ? stage.GetComponent<ArenaFighterSpawner>() : null;
+            AddArenaFloor(stage);
+            FighterSession.EnemyFighter = null;   // the arena has picked it up; later fights roll their own
+            FighterSession.ClearGroup();
 
-            if (_arena == null || _arena.Player == null || _arena.Enemy == null)
+            if (_arena == null || _arena.Player == null || _arena.Foes == null || _arena.Foes.Count == 0)
             {
-                Debug.LogError("[Game] The arena did not spawn both fighters. Check the Console above for [Fighters] errors.");
+                Debug.LogError("[Game] The arena did not spawn the fighters. Check the Console above for [Fighters] errors.");
                 EnterHub();
                 return;
             }
 
-            _lastEnemy = _arena.Enemy.Data;
+            // the toughest opponent is the one who "killed" the hero if the hero falls (tombstone and Book)
+            FighterIdentity toughest = _arena.Foes[0];
+            foreach (var f in _arena.Foes)
+                if (f != null && f.Data != null && (toughest == null || toughest.Data == null || f.Data.level * 2 + f.Data.VisibleTotal > toughest.Data.level * 2 + toughest.Data.VisibleTotal)) toughest = f;
+            _lastEnemy = toughest != null ? toughest.Data : null;
+
+            if (mode == FightMode.Boss && bossIntro && _arena.Foes[0] != null)
+                StartBossIntro(_arena.Foes[0]);
+        }
+
+        // The film before a boss fight. The fighters are frozen (and hidden) from this moment until it ends, so nothing happens behind it.
+        void StartBossIntro(FighterIdentity boss)
+        {
+            try
+            {
+                string bossTitle = boss.Data != null ? boss.Data.displayName : "BOSS";
+                if (bossTitle.StartsWith("Boss ")) bossTitle = bossTitle.Substring(5);   // the card name is "Boss <name>"; the film says BOSS! by itself
+
+                var go = new GameObject("BossIntro");
+                var intro = go.AddComponent<BossIntro>();
+                intro.bossName = bossTitle;
+                intro.label = bossLabel;
+                intro.nameColor = bossNameColor;
+                intro.labelColor = bossLabelColor;
+                intro.roarClip = bossRoarClip;
+                intro.slamClip = bossSlamClip;
+                intro.portalClip = bossPortalClip;
+
+                _introPlaying = true;
+                SetHud(false);
+                intro.Begin(_arena, boss, () =>
+                {
+                    _introPlaying = false;
+                    _fightStarted = Time.time;
+                    SetHud(true);
+                });
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[Game] Boss intro failed, starting the fight: " + e.Message, this);
+                _introPlaying = false;
+                SetHud(true);
+            }
+        }
+
+        // The arena prefab has no ground of its own (on a real table the table is the ground). After "Place in front of me" there is
+        // nothing real to stand on, so draw the same dark disc the hub has under the fighters.
+        void AddArenaFloor(GameObject stage)
+        {
+            if (stage == null || arenaFloor == ArenaFloor.Never) return;
+            if (arenaFloor == ArenaFloor.WhenNoSurface && _placer != null && _placer.PlacedOnSurface) return;
+
+            float sep = _arena != null ? _arena.fighterSeparation : 1.2f;
+            float diameter = Mathf.Max(sep + 0.7f, 0.9f);
+
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            floor.name = "ArenaFloor";
+            var col = floor.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            floor.transform.SetParent(stage.transform, false);
+            floor.transform.localPosition = new Vector3(0f, -0.004f, 0f);   // just under the fighters' feet
+            floor.transform.localScale = new Vector3(diameter, 0.003f, diameter);
+
+            var rend = floor.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                var mat = StageMaterials.Make(arenaFloorColor);
+                if (mat != null) rend.sharedMaterial = mat;
+            }
         }
 
         void MonitorFight()
         {
-            if (_fightEnding || _arena == null) return;
+            if (_fightEnding || _arena == null || _introPlaying) return;
 
             if (debugOutcome != DebugOutcome.None && Time.time - _fightStarted > 4f)
             {
                 _fightEnding = true;
-                StartCoroutine(EndFight(debugOutcome == DebugOutcome.ForceVictory));
+                StartCoroutine(EndFight(debugOutcome == DebugOutcome.ForceVictory, false));
                 return;
             }
-            if (_arena.Player == null || _arena.Enemy == null) return;
+            if (_arena.Player == null || _arena.Foes == null || _arena.Foes.Count == 0) return;
 
             var playerHp = _arena.Player.GetComponent<Health>();
-            var enemyHp = _arena.Enemy.GetComponent<Health>();
-            if (playerHp == null || enemyHp == null) return;
+            if (playerHp == null) return;
+
+            // the fight is won when every opponent is down (one in a 1 against 1 fight), lost when the hero falls
+            bool allFoesDead = true;
+            foreach (var f in _arena.Foes)
+            {
+                if (f == null) continue;
+                var hp = f.GetComponent<Health>();
+                if (hp != null && !hp.IsDead) { allFoesDead = false; break; }
+            }
 
             bool playerDead = playerHp.IsDead;
-            bool enemyDead = enemyHp.IsDead;
-            if (playerDead || enemyDead)
+
+            // Team fights (Group Fight, Group Death Match): the fight plays on after the hero falls, and ends when one TEAM is down.
+            // If the hero's team still wins, the hero lives but the schedule starts over (see EnterResult).
+            bool teamFight = _card != null && _card.IsGroup && _mode != FightMode.LastHero;
+            if (teamFight)
+            {
+                bool anyAllyUp = false;
+                foreach (var a in _arena.Allies)
+                {
+                    if (a == null) continue;
+                    var hp = a.GetComponent<Health>();
+                    if (hp != null && !hp.IsDead) { anyAllyUp = true; break; }
+                }
+
+                if (allFoesDead)
+                {
+                    _fightEnding = true;
+                    StartCoroutine(EndFight(true, playerDead));
+                }
+                else if (playerDead && !anyAllyUp)
+                {
+                    _fightEnding = true;
+                    StartCoroutine(EndFight(false, false));
+                }
+                return;
+            }
+
+            if (playerDead || allFoesDead)
             {
                 _fightEnding = true;
-                StartCoroutine(EndFight(enemyDead && !playerDead));
+                StartCoroutine(EndFight(allFoesDead && !playerDead, false));
             }
         }
 
-        IEnumerator EndFight(bool playerWon)
+        IEnumerator EndFight(bool playerWon, bool heroFell = false)
         {
             yield return new WaitForSeconds(fightEndDelay);
-            EnterResult(playerWon);
+            EnterResult(playerWon, heroFell);
         }
 
         // ------------------------------------------------------------------ result
-        void EnterResult(bool playerWon)
+        // heroFell: only in team fights. The hero went down but their team won anyway.
+        void EnterResult(bool playerWon, bool heroFell = false)
         {
             _state = GameState.Result;
             SetHud(false);
@@ -563,13 +863,53 @@ namespace Game
                 return;
             }
 
-            if (playerWon)
+            if (playerWon && heroFell)
+            {
+                // The team won, but the hero went down: it counts as a LOSS for the schedule (it starts over from fight 1 with new
+                // opponents) but the hero is alive and keeps everything earned so far (levels, stat points, training). No XP for this fight.
+                _save.run = new RunState();
+                _save.hasFighter = true;
+                _save.fighter = fighter;
+                SaveSystem.Save(_save);
+
+                ShowFighterStage(fighter);
+                _resultToHub = true;
+                _ui.ShowResult("DEFEATED", new Color(1f, 0.6f, 0.25f),
+                               fighter.displayName + " fell in battle,\nbut the team won the day!\n\nThe schedule starts over from fight 1.\n" + fighter.displayName + " keeps everything earned so far.",
+                               "Continue");
+            }
+            else if (playerWon)
             {
                 fighter.wins++;
                 _save.totalWins++;
 
-                int xp = ProgressionRules.XpReward(fighter, _lastEnemy != null ? _lastEnemy : fighter);
+                int xp = _card != null
+                    ? RewardForCard(_card, fighter, true)
+                    : RewardFor(_mode, fighter, _lastEnemy != null ? _lastEnemy : fighter, true);
                 var up = ProgressionRules.AddXp(fighter, xp, _rng);
+
+                string title = "VICTORY";
+                string headline = _mode == FightMode.Group ? fighter.displayName + "'s team wins!" : null;
+                string extra;
+                if ((_mode == FightMode.Boss || _mode == FightMode.GroupDeathMatch || _mode == FightMode.LastHero) && _fromSchedule)
+                {
+                    // The finale is won: the schedule is complete, with a bonus. The next press on Fight Schedule starts a new one.
+                    fighter.statPoints += championBonusPoints;
+                    _save.runsWon++;
+                    _save.run = new RunState();
+                    title = "CHAMPION!";
+                    if (_mode == FightMode.Boss) headline = fighter.displayName + " beat the boss and finished the schedule!";
+                    else if (_mode == FightMode.GroupDeathMatch) headline = fighter.displayName + "'s team won the group death match and finished the schedule!";
+                    else headline = fighter.displayName + " is the last hero standing and finished the schedule!";
+                    extra = championBonusPoints > 0
+                        ? "+" + championBonusPoints + (championBonusPoints == 1 ? " bonus stat point" : " bonus stat points") + "  (spend under Stats)"
+                        : null;
+                }
+                else
+                {
+                    AdvanceRun(fighter);
+                    extra = RunProgressLine();
+                }
 
                 _save.hasFighter = true;
                 _save.fighter = fighter;
@@ -577,7 +917,7 @@ namespace Game
 
                 ShowFighterStage(fighter);
                 _resultToHub = true;
-                _ui.ShowResult("VICTORY", new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore), "Continue");
+                _ui.ShowResult(title, new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore, headline, extra), "Continue");
             }
             else if (Random.value < ProgressionRules.DefeatSurvivalChance)
             {
@@ -595,6 +935,7 @@ namespace Game
                 _save.fallen.Add(new FallenFighter(fallen, _lastEnemy));   // the graveyard pages of the Book
                 _save.hasFighter = false;
                 _save.fighter = new FighterData();
+                _save.run = new RunState();   // the schedule ends with the hero
                 SaveSystem.Save(_save);
 
                 var stage = tombstoneStagePrefab != null
@@ -621,10 +962,11 @@ namespace Game
             FighterSession.Mode = FightMode.DeathMatch;
             _mode = FightMode.DeathMatch;
 
-            float factor = playerWon ? duelWinXpFactor : duelLossXpFactor;
-            int xp = Mathf.Max(1, Mathf.RoundToInt(ProgressionRules.XpReward(fighter, _lastEnemy != null ? _lastEnemy : fighter) * factor));
+            int xp = RewardFor(FightMode.Duel, fighter, _lastEnemy != null ? _lastEnemy : fighter, playerWon);
             if (playerWon) { fighter.wins++; _save.totalWins++; }
             var up = ProgressionRules.AddXp(fighter, xp, _rng);
+            AdvanceRun(fighter);   // a finished duel counts as a schedule fight, won or lost
+            string runLine = RunProgressLine();
 
             _save.hasFighter = true;
             _save.fighter = fighter;
@@ -633,10 +975,10 @@ namespace Game
             ShowFighterStage(fighter);
             _resultToHub = true;
             if (playerWon)
-                _ui.ShowResult("DUEL WON", new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " wins the duel!"), "Continue");
+                _ui.ShowResult("DUEL WON", new Color(1f, 0.82f, 0.25f), BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " wins the duel!", runLine), "Continue");
             else
                 _ui.ShowResult("DUEL LOST", new Color(1f, 0.6f, 0.25f),
-                               BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " yields, and nobody is hurt.\nYou still learn from it."), "Continue");
+                               BuildVictoryText(fighter, up, _profBefore, fighter.displayName + " yields, and nobody is hurt.\nYou still learn from it.", runLine), "Continue");
         }
 
         // A roster/hub/result stage: from the prefab if one is assigned, otherwise built in code.
@@ -660,7 +1002,15 @@ namespace Game
             _roster.ShowSingle(fighter);
         }
 
-        static string BuildVictoryText(FighterData f, LevelUpResult up, int[] profBefore, string headline = null)
+        // "2 of 3 fights done" / "FINALE unlocked!" for fights picked from the schedule, nothing for the old direct fights.
+        string RunProgressLine()
+        {
+            if (!_fromSchedule || _save == null || _save.run == null) return null;
+            if (_save.run.fightsDone >= fightsPerRun) return "FINALE unlocked!  Open the Fight Schedule";
+            return "Schedule:  " + _save.run.fightsDone + " of " + fightsPerRun + " fights done";
+        }
+
+        static string BuildVictoryText(FighterData f, LevelUpResult up, int[] profBefore, string headline = null, string extra = null)
         {
             var sb = new System.Text.StringBuilder();
             sb.Append(headline != null ? headline : f.displayName + " wins!");
@@ -674,6 +1024,7 @@ namespace Game
             }
             string prof = ProgressionRules.ProfDiffText(profBefore, f);
             if (!string.IsNullOrEmpty(prof)) sb.Append("\n").Append(prof);
+            if (!string.IsNullOrEmpty(extra)) sb.Append("\n").Append(extra);
             return sb.ToString();
         }
 
