@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Skeleton_Minion
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Skeleton Minion
+  classification: 1
+  modelIds:
+  - Skeleton_Minion
+  description: The simplest result of necromantic reanimation, Skeleton Minions possess
+    little independent thought and retain few memories of their former existence.
+    Individually weak, they are often raised in considerable numbers. Their creation
+    represents one of the earliest and most infamous applications of Death-aligned
+    Mana.
+  modifiers:
+  - kind: 0
+    points: -1
+  - kind: 1
+    points: -1
+  abilities: []

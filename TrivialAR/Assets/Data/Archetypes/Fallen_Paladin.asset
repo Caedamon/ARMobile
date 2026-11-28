@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Fallen_Paladin
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Fallen Paladin
+  classification: 1
+  modelIds:
+  - Fallen_Paladin
+  description: Once bound by sacred oaths of duty and honour, Fallen Paladins are
+    warriors who have abandoned or betrayed the principles upon which their strength
+    was founded. Some fell through despair, others through ambition or forbidden
+    cultivation. Though their conviction has been corrupted, the martial discipline
+    of their former lives remains.
+  modifiers:
+  - kind: 1
+    points: 1
+  - kind: 5
+    points: 1
+  - kind: 0
+    points: -1
+  abilities: []

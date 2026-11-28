@@ -461,11 +461,11 @@ namespace Game
             _book.TurnForward();
         }
 
-        // A tab under the open book: 0 Index, 1 Memoria Dies, 2 Stats, 3 Armoury (the same order as BookStage.Section).
+        // A tab under the open book: 0 Index, 1 Arena Rules, 2 Stats, 3 Armoury, 4 Codex, 5 Memento Mori (the same order as BookStage.Section).
         void OnBookTab(int tab)
         {
             if (_state != GameState.Book || _book == null || _bookClosing) return;
-            if (tab < 0 || tab > 3) return;
+            if (tab < 0 || tab > 5) return;
             _book.JumpTo((BookStage.Section)tab);
         }
 
@@ -865,6 +865,7 @@ namespace Game
 
             if (playerWon && heroFell)
             {
+                fighter.streak = 0;
                 // The team won, but the hero went down: it counts as a LOSS for the schedule (it starts over from fight 1 with new
                 // opponents) but the hero is alive and keeps everything earned so far (levels, stat points, training). No XP for this fight.
                 _save.run = new RunState();
@@ -882,6 +883,9 @@ namespace Game
             {
                 fighter.wins++;
                 _save.totalWins++;
+                fighter.streak++;
+                if (fighter.streak > fighter.bestStreak) fighter.bestStreak = fighter.streak;
+                if (_mode == FightMode.Boss) fighter.bossesDefeated++;
 
                 int xp = _card != null
                     ? RewardForCard(_card, fighter, true)
@@ -921,6 +925,7 @@ namespace Game
             }
             else if (Random.value < ProgressionRules.DefeatSurvivalChance)
             {
+                fighter.streak = 0;
                 ShowFighterStage(fighter);
                 _resultToHub = true;
                 _ui.ShowResult("DEFEATED", new Color(1f, 0.6f, 0.25f),
@@ -932,7 +937,7 @@ namespace Game
                 var fallen = fighter;
                 FighterSession.PlayerFighter = null;
                 if (_save.fallen == null) _save.fallen = new List<FallenFighter>();
-                _save.fallen.Add(new FallenFighter(fallen, _lastEnemy));   // the graveyard pages of the Book
+                _save.fallen.Add(FallenFighter.Record(catalog, fallen, _lastEnemy, _mode));   // the two graveyard pages of the Book (how they died, against whom, their legacy)
                 _save.hasFighter = false;
                 _save.fighter = new FighterData();
                 _save.run = new RunState();   // the schedule ends with the hero

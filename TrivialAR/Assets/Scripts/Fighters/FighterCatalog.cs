@@ -25,6 +25,15 @@ namespace Fighters
 
         public List<Model> models = new List<Model>();
 
+        [Tooltip("The archetypes (classes): lore for the Codex pages and small stat modifiers. Optional: without it every fighter fights as before.")]
+        public ArchetypeLibrary archetypes;
+
+        /// <summary>The archetype of a model id, or null.</summary>
+        public ArchetypeDefinition ArchetypeOf(string modelId)
+        {
+            return archetypes != null ? archetypes.Find(modelId) : null;
+        }
+
         public Model Find(string id)
         {
             foreach (var m in models) if (m != null && m.id == id) return m;

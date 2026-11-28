@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: RogueHooded
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Rogue
+  classification: 0
+  modelIds:
+  - RogueHooded
+  description: Unbound by the doctrines of established martial schools, Rogues develop
+    their abilities through experience, necessity and survival. They favour adaptability,
+    cunning and opportunistic strikes over honourable confrontation. While Imperial
+    academies rarely acknowledge their methods, few experienced warriors willingly
+    underestimate a Rogue.
+  modifiers:
+  - kind: 2
+    points: 1
+  - kind: 3
+    points: 1
+  - kind: 0
+    points: -1
+  abilities: []

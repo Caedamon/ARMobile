@@ -50,6 +50,19 @@ namespace Fighters
         public Combat.AnimationPack animationPack;
         public bool brainDebugLogs = false;
 
+        [Header("AI (how the fighters think)")]
+        [Tooltip("Enemies of this quality or better are Smart (they circle, punish, defend sensibly). Lower ones rush: grab a weapon, charge.")]
+        public FighterTier smartFromTier = FighterTier.HighQuality;
+        [Tooltip("A Normal-quality enemy is Smart with this chance (so some regular foes surprise you). Pathetic ones are always Basic.")]
+        [Range(0f, 1f)] public float normalSmartChance = 0.15f;
+        [Tooltip("Boss fights: the boss uses the Boss AI (Smart + phases).")]
+        public bool bossUsesBossAi = true;
+        [Tooltip("The AI of your own hero and of your allies. Keep Basic unless you want your side smarter too.")]
+        public Combat.AiTier heroAi = Combat.AiTier.Basic;
+        public Combat.AiTier allyAi = Combat.AiTier.Basic;
+        [Tooltip("All the numbers behind Smart and Boss. Tune here.")]
+        public Combat.AiTuning aiTuning = new Combat.AiTuning();
+
         [Header("Arrival")]
         [Tooltip("Fighters fall out of a small portal above them when a fight starts (needs the 'Spawn_Air' clip: Tools > Kaiju > Arrival > Set Up Arrival).")]
         public bool arrivalPortals = true;
@@ -258,6 +271,20 @@ namespace Fighters
             return Build(d, side, prefab, pos, dir, freeForAll);
         }
 
+        // Which way of thinking this fighter gets.
+        Combat.AiTier PickAiTier(FighterData d, FighterSide side)
+        {
+            if (side == FighterSide.Player)
+                return d == FighterSession.PlayerFighter ? heroAi : allyAi;
+
+            if (bossUsesBossAi && FighterSession.Mode == FightMode.Boss && d.displayName != null && d.displayName.StartsWith("Boss "))
+                return Combat.AiTier.Boss;
+
+            if (d.tier >= smartFromTier && d.tier != FighterTier.Pathetic) return Combat.AiTier.Smart;
+            if (d.tier == FighterTier.Normal && Random.value < normalSmartChance) return Combat.AiTier.Smart;
+            return Combat.AiTier.Basic;
+        }
+
         FighterIdentity Build(FighterData d, FighterSide side, GameObject prefab, Vector3 pos, Vector3 dir, bool freeForAll)
         {
             Quaternion rot = dir.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(dir.normalized, Vector3.up) : transform.rotation;
@@ -271,7 +298,7 @@ namespace Fighters
 
             var identity = go.GetComponent<FighterIdentity>();
             if (identity == null) identity = go.AddComponent<FighterIdentity>();
-            identity.Apply(d, debugLogs);
+            identity.Apply(d, debugLogs, catalog != null ? catalog.ArchetypeOf(d.modelId) : null);
 
             if (realtimeCombat)
             {
@@ -296,6 +323,8 @@ namespace Fighters
                 brain.tuningAsset = combatTuning;
                 brain.sounds = combatSounds;
                 brain.debugLogs = brainDebugLogs;
+                brain.aiTuning = aiTuning;
+                brain.aiTier = PickAiTier(d, side);
             }
 
             if (showNameplates)

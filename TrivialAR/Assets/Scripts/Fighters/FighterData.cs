@@ -42,6 +42,11 @@ namespace Fighters
         public int fights;   // fights fought, wins and losses (shown on the tombstone)
         public int statPoints;   // unspent level-up points (spent under Stats on the hub)
 
+        // Legacy (shown on the hero's pages in the Memento Mori section of the Book). Old saves simply start at 0.
+        public int bossesDefeated;
+        public int streak;        // victories in a row, back to 0 after any defeat
+        public int bestStreak;
+
         // Weapon proficiency (XP per fighting style). Old saves without this simply start empty.
         public List<ProficiencyEntry> proficiency = new List<ProficiencyEntry>();
 

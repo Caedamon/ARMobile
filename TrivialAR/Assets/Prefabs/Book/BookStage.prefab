@@ -158,11 +158,12 @@ MonoBehaviour:
     entries:
     - heading: Level up
       body: Every level gives one free stat point. Spend it under Stats on the hub.
-    - heading: Death Match
-      body: The loser dies, and is written into the Memento Mori.
-    - heading: Duel
-      body: Nobody dies. The loser kneels, and you keep your fighter. A good way
-        to train.
+    - heading: Death
+      body: In a deadly fight the loser dies, and is written into the Memento Mori.
+        Duels never kill. The Rules of the Arena explain every kind of fight.
+    - heading: Quality
+      body: 'Pathetic, Normal, High quality or Elite: it is only a starting point.
+        Quality does not decide a fighter''s fate.'
   - title: Luck
     entries:
     - heading: LUCK
@@ -171,9 +172,107 @@ MonoBehaviour:
 
         Nobody knows
         exactly what luck does. The book will not say.'
+  howToPlayTexts:
+  - title: Rules of the Arena
+    entries:
+    - heading: The Arena
+      body: The game is centered around Arena fighting. Pick your fighter, fight
+        three battles, then choose between three different kinds of epic end-game
+        fights.
+    - heading: The Schedule
+      body: Before every battle you choose one of three fights. Win to move on. A
+        Duel counts too, win or lose.
+    - heading: The Finale
+      body: After three battles comes the Finale. Win it and you are crowned Champion,
+        with a bonus stat point. Then a new schedule begins.
+  - title: Duel
+    entries:
+    - heading: How it works
+      body: One against one, and nobody dies. When a fighter has had enough, they
+        kneel and the duel is over.
+    - heading: Reward
+      body: Half the XP of a normal win, and a little even if you lose. Weapon training
+        grows faster in a duel.
+    - heading: Good for
+      body: Training, and a safe way forward. A finished duel counts as one of your
+        three battles.
+  - title: Death Match
+    entries:
+    - heading: How it works
+      body: 'One against one, to the end. There is no yielding: the fight is over
+        when someone falls.'
+    - heading: Stakes
+      body: The loser dies and is written into the Memento Mori. Your fighter is
+        gone for good.
+    - heading: Reward
+      body: The full XP of a win, and the victory moves you closer to the Finale.
+  - title: Group Fight
+    entries:
+    - heading: How it works
+      body: You and a teammate against two opponents. The fight goes on if you fall,
+        and ends when one whole team is down.
+    - heading: If you fall
+      body: 'If your team still wins, you live, but it counts as a loss: the schedule
+        starts over and there is no XP. If your team falls too, you die.'
+    - heading: Reward
+      body: XP for every opponent beaten, a little less than in a one-on-one.
+  - title: Boss Fight
+    entries:
+    - heading: Finale
+      body: 'One of the three end-game fights. You face a Boss: one fighter of the
+        best quality, tougher than you, and clever.'
+    - heading: How it works
+      body: One against one, to the death. A boss grows more furious as it is hurt,
+        so do not get comfortable.
+    - heading: Reward
+      body: More XP than any single fight, and the crown of Champion. Lose, and you
+        join the Memento Mori.
+  - title: Group Death Match
+    entries:
+    - heading: Finale
+      body: One of the three end-game fights. Your team of three stands against a
+        team of three.
+    - heading: How it works
+      body: 'Same rules as a Group Fight: the battle goes on after you fall. But
+        the stakes are higher, and it is the Finale.'
+    - heading: Reward
+      body: If your team wins, even if you fell, the Finale is won. If your team
+        falls, so do you.
+  - title: Last Hero Standing
+    entries:
+    - heading: Finale
+      body: 'One of the three end-game fights. Five fighters, no teams: everybody
+        fights everybody.'
+    - heading: How it works
+      body: Only one survives. Stay on your feet while the others wear each other
+        down, and pick your moment.
+    - heading: Reward
+      body: The Champion's crown, and XP for every rival beaten. If you fall, the
+        fight is lost.
+  - title: Know Your Enemy
+    entries:
+    - heading: The brawlers
+      body: Most foes just grab a weapon and rush you. They hit hard, but they are
+        easy to read.
+    - heading: The clever ones
+      body: Better fighters circle, wait for you to slip, and strike back the moment
+        you miss. Do not swing wildly.
+    - heading: The bosses
+      body: A boss fights like a clever one, and gets stronger as it loses health.
+        It roars when it changes, and that is your moment.
+  howToName: Arena Rules
   graveyardTitle: Memento Mori
   statsName: Stats
   armouryName: Armoury
+  codexName: Codex
+  codexLibrary: {fileID: 11400000, guid: 02416cd270e9c1042aaacf2250959a24, type: 2}
+  codexCatalog: {fileID: 11400000, guid: 465c9f0bf265ddc47993213ff0f21ce0, type: 2}
+  codexPortraitSize: 384
+  codexFrameHeight: 1
+  codexPose: {fileID: -252589354938087612, guid: aacba81dfc908a2458615989ca24fea3, type: 3}
+  codexPoseTime: 0
+  codexPagesAhead: 6
+  codexPagesBehind: 4
   weaponFlatMaterial: {fileID: 2100000, guid: dc9eb7a50b9e7154da69ebb75e709863, type: 2}
   weaponPictureSize: 512
   weaponPageTextureSize: 512
@@ -214,8 +313,10 @@ MonoBehaviour:
   worldTabs: 1
   tabColors:
   - {r: 0.55, g: 0.16, b: 0.16, a: 1}
+  - {r: 0.78, g: 0.52, b: 0.12, a: 1}
   - {r: 0.16, g: 0.36, b: 0.62, a: 1}
   - {r: 0.2, g: 0.5, b: 0.26, a: 1}
+  - {r: 0.1, g: 0.45, b: 0.48, a: 1}
   - {r: 0.36, g: 0.14, b: 0.46, a: 1}
   tabLength: 0.16
   tabHeight: 0.075

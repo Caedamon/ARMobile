@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Skeleton_Golem
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Skeleton Golem
+  classification: 2
+  modelIds:
+  - Skeleton_Golem
+  description: Constructed from the remains of numerous creatures and bound together
+    through advanced necromancy, Skeleton Golems represent a grotesque union of Death
+    magic and construct engineering. Unlike lesser undead, their creation demands
+    considerable mastery and vast quantities of Mana. Their existence is widely regarded
+    as a desecration of the natural order.
+  modifiers:
+  - kind: 1
+    points: 1
+  - kind: 0
+    points: 1
+  - kind: 2
+    points: -1
+  abilities: []

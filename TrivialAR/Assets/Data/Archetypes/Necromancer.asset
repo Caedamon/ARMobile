@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Necromancer
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Necromancer
+  classification: 1
+  modelIds:
+  - Necromancer
+  description: Scholars and cultivators who pursue the forbidden mysteries of Death,
+    Necromancers seek dominion over the boundary separating the living from the departed.
+    Their experiments have produced both extraordinary discoveries and unspeakable
+    horrors. The Empire regards their practices with considerable suspicion, for
+    mastery over death rarely comes without sacrifice.
+  modifiers:
+  - kind: 5
+    points: 1
+  - kind: 2
+    points: 1
+  - kind: 0
+    points: -1
+  - kind: 1
+    points: -1
+  abilities: []

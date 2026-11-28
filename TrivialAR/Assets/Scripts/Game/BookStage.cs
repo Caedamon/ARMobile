@@ -40,10 +40,33 @@ namespace Game
         [SerializeField] List<WeaponDefinition> weapons = new List<WeaponDefinition>();
         [Tooltip("The words on the Stats pages (up to 3 headings per page). Change them here; the numbers come from the combat balance, so keep them in step.")]
         [SerializeField] BookTextPage[] statsTexts = BookTexts.DefaultStats();
+        [Tooltip("The Rules of the Arena: how a run works, then one page per kind of fight. The first section after the Index.")]
+        [SerializeField] BookTextPage[] howToPlayTexts = BookTexts.DefaultHowToPlay();
+        [Tooltip("Name of the how-to-play section: on its bookmark and in the Index.")]
+        [SerializeField] string howToName = "Arena Rules";
         [Tooltip("Names shown in the Index (and on the tabs under the book, see GameUI > Book Tab Names). Memento Mori = remember that you will die.")]
         [SerializeField] string graveyardTitle = "Memento Mori";
         [SerializeField] string statsName = "Stats";
         [SerializeField] string armouryName = "Armoury";
+        [SerializeField] string codexName = "Codex";
+
+        [Header("Codex (archetype pages, set by Tools > Kaiju > Book > Set Up Codex)")]
+        [Tooltip("The archetypes in the order they are shown: two pages each (portrait on the left, lore and modifiers on the right).")]
+        [SerializeField] ArchetypeLibrary codexLibrary;
+        [Tooltip("Where the models (prefabs) of the archetypes come from. The same catalog the fights use.")]
+        [SerializeField] FighterCatalog codexCatalog;
+        [Tooltip("Height of a portrait picture in pixels (it is three quarters as wide).")]
+        [SerializeField] int codexPortraitSize = 512;
+        [Tooltip("How much of the model's height the portrait shows. 1 = the whole body, 0.3 = head and shoulders.")]
+        [SerializeField, Range(0.2f, 1f)] float codexFrameHeight = 1f;
+        [Tooltip("The pose the models stand in for their portrait (an idle clip), so they do not stand in a T-pose. Set by Set Up Codex from the Animation Pack. Empty = the pose the prefab was saved in.")]
+        [SerializeField] AnimationClip codexPose;
+        [Tooltip("How far into the pose clip (seconds).")]
+        [SerializeField] float codexPoseTime = 0f;
+        [Tooltip("Codex pages are drawn when you get near them, not all at once. This many pages ahead of the open spread are kept ready...")]
+        [SerializeField, Range(2, 16)] int codexPagesAhead = 6;
+        [Tooltip("...and this many behind it. Pages further away are thrown away again to save memory.")]
+        [SerializeField, Range(0, 16)] int codexPagesBehind = 4;
 
         [Header("Weapon pictures")]
         [Tooltip("A material with an Unlit shader (URP/Unlit). The weapon pictures are drawn flat with it. Made by the setup tool; keeping it here also makes sure the shader is in the build.")]
@@ -86,7 +109,7 @@ namespace Game
         [SerializeField] bool flipPagesHorizontally = false;
         [Tooltip("Frames to wait after filling a page before drawing it (lets the text settle). 1 is safe.")]
         [SerializeField] int settleFrames = 1;
-        [Tooltip("The graveyard shows the most recent fallen fighters. Each page picture costs about 3 MB of memory.")]
+        [Tooltip("The graveyard shows the most recent fallen fighters, TWO pages each (so 12 = the last 6 heroes). Each page picture costs about 3 MB of memory.")]
         [SerializeField] int maxFallenPages = 12;
 
         [Header("Timing")]
@@ -121,14 +144,20 @@ namespace Game
         [SerializeField] float pageTurnSoundDelay = 0f;
 
         [Header("Side tabs (bookmarks)")]
-        [Tooltip("Bookmarks on the edge of the open book, one under the other: Index, Stats, Armoury, Memento Mori. Each belongs to the first page of its section: on the left edge once you have turned to or past that page, on the right edge before. They turn over with the page. Tap one to go there. Untick to use the buttons under the book instead.")]
+        [Tooltip("Bookmarks on the edge of the open book, one under the other: Index, Arena Rules, Stats, Armoury, Codex, Memento Mori. Each belongs to the first page of its section: on the left edge once you have turned to or past that page, on the right edge before. They turn over with the page. Tap one to go there. Untick to use the buttons under the book instead.")]
         [SerializeField] bool worldTabs = true;
-        [Tooltip("Tab colours, in book order: Index, Stats, Armoury, Memento Mori.")]
-        [SerializeField] Color[] tabColors =
+        [Tooltip("Tab colours, in book order: Index, Arena Rules, Stats, Armoury, Codex, Memento Mori. Fewer than six colours: the defaults are used.")]
+        [SerializeField] Color[] tabColors = DefaultTabColors();
+
+        const int SectionCount = 6;
+        static Color[] DefaultTabColors()
         {
-            new Color(0.55f, 0.16f, 0.16f, 1f), new Color(0.16f, 0.36f, 0.62f, 1f),
-            new Color(0.20f, 0.50f, 0.26f, 1f), new Color(0.36f, 0.14f, 0.46f, 1f)
-        };
+            return new[]
+            {
+                new Color(0.55f, 0.16f, 0.16f, 1f), new Color(0.78f, 0.52f, 0.12f, 1f), new Color(0.16f, 0.36f, 0.62f, 1f),
+                new Color(0.20f, 0.50f, 0.26f, 1f), new Color(0.10f, 0.45f, 0.48f, 1f), new Color(0.36f, 0.14f, 0.46f, 1f)
+            };
+        }
         [Tooltip("How far a tab sticks out, as a fraction of the open book's width.")]
         [SerializeField] float tabLength = 0.16f;
         [Tooltip("Height of a tab along the book's edge, as a fraction of the page height.")]
@@ -152,7 +181,7 @@ namespace Game
         public event Action Failed;
 
         public bool IsOpen { get; private set; }
-        public bool IsBusy { get { return _closing || (book != null && (book.IsTurningPages || book.CurrentState != BookComponent.StateEnum.OpenMiddle)); } }
+        public bool IsBusy { get { return _closing || _jumping || (book != null && (book.IsTurningPages || book.CurrentState != BookComponent.StateEnum.OpenMiddle)); } }
         public bool CanTurnBack { get { return IsOpen && !IsBusy && !book.IsFirstPageGroup; } }
         public bool CanTurnForward { get { return IsOpen && !IsBusy && !book.IsLastPageGroup; } }
 
@@ -198,9 +227,9 @@ namespace Game
             Raise(PageChanged);
         }
 
-        public enum Section { Index, Stats, Armoury, Graveyard }
+        public enum Section { Index, HowToPlay, Stats, Armoury, Codex, Graveyard }
 
-        readonly int[] _sectionPage = new int[4];
+        readonly int[] _sectionPage = new int[SectionCount];
 
         /// <summary>Turns to the first page of a section (the tabs under the book).</summary>
         public void JumpTo(Section section)
@@ -208,6 +237,13 @@ namespace Game
             if (!IsOpen || IsBusy) return;
             int page = _sectionPage[(int)section];
             if (page < 1) return;
+
+            // Codex pages are drawn on demand: have the pages we land on ready before the book starts turning.
+            if (IsCodexPage(page) && !(_codexTex.ContainsKey(page) && _codexTex.ContainsKey(page + 1)))
+            {
+                StartCoroutine(JumpAfterCodexRoutine(section, page));
+                return;
+            }
 
             int away = Mathf.Abs(page - book.CurrentLeftPageNumber);
             if (away < 2) { book.SetPageNumber(page); Raise(PageChanged); return; }   // already looking at it
@@ -245,6 +281,7 @@ namespace Game
 
             // 1. what goes on each page
             var specs = BuildSpecs(current, fallen);
+            _specs = specs;
             _pageCount = specs.Count;
             MeasureWeapons();
             if (debugLogs) Debug.Log("[Book] " + _pageCount + " pages (" + (fallen != null ? fallen.Count : 0) + " fallen)");
@@ -253,6 +290,11 @@ namespace Game
             MakeCamera();
             for (int i = 0; i < specs.Count; i++)
             {
+                if (specs[i].kind == Kind.CodexLeft || specs[i].kind == Kind.CodexRight)
+                {
+                    _materials.Add(CodexPlaceholder());   // drawn later, when the book gets near
+                    continue;
+                }
                 yield return DrawPage(specs[i], i + 1);
                 if (_materials.Count != i + 1)
                 {
@@ -286,7 +328,7 @@ namespace Game
             Raise(PageChanged);
         }
 
-        enum Kind { Fighter, Grave, Empty, Blank, Index, Text, WeaponPicture, WeaponInfo }
+        enum Kind { Fighter, Grave, Empty, Blank, Index, Text, WeaponPicture, WeaponInfo, GraveLeft, GraveRight, CodexLeft, CodexRight }
 
         struct Spec
         {
@@ -295,9 +337,10 @@ namespace Game
             public FallenFighter fallen;
             public BookTextPage text;
             public WeaponDefinition weapon;
+            public ArchetypeDefinition archetype;
         }
 
-        // Page 1 (left): your fighter.  Page 2 (right): the Index.  Then: Stats, Armoury, Memento Mori (the graveyard, last, because it only grows).
+        // Page 1 (left): your fighter.  Page 2 (right): the Index.  Then: Arena Rules (how to play), Stats, Armoury, Memento Mori (the graveyard, last, because it only grows).
         // Every section starts on a left page, so each one opens as a fresh spread.
         List<Spec> BuildSpecs(FighterData current, List<FallenFighter> fallen)
         {
@@ -305,6 +348,13 @@ namespace Game
             list.Add(current != null ? new Spec { kind = Kind.Fighter, fighter = current } : new Spec { kind = Kind.Blank });
             list.Add(new Spec { kind = Kind.Index });
             _sectionPage[(int)Section.Index] = 1;
+
+            _sectionPage[(int)Section.HowToPlay] = list.Count + 1;
+            if (howToPlayTexts != null)
+                foreach (var p in howToPlayTexts)
+                    if (p != null) list.Add(new Spec { kind = Kind.Text, text = p });
+            if (list.Count + 1 == _sectionPage[(int)Section.HowToPlay]) list.Add(new Spec { kind = Kind.Blank });
+            Pad(list);
 
             _sectionPage[(int)Section.Stats] = list.Count + 1;
             if (statsTexts != null)
@@ -324,12 +374,33 @@ namespace Game
             if (weaponCount == 0) list.Add(new Spec { kind = Kind.Blank });
             Pad(list);
 
+            // Codex: two pages for every archetype. They are NOT drawn when the book opens (see the Codex pages part below).
+            _sectionPage[(int)Section.Codex] = list.Count + 1;
+            int codexEntries = 0;
+            if (codexLibrary != null && codexLibrary.entries != null)
+                foreach (var a in codexLibrary.entries)
+                {
+                    if (a == null) continue;
+                    list.Add(new Spec { kind = Kind.CodexLeft, archetype = a });
+                    list.Add(new Spec { kind = Kind.CodexRight, archetype = a });
+                    codexEntries++;
+                }
+            if (codexEntries == 0) list.Add(new Spec { kind = Kind.Blank });
+            Pad(list);
+            _codexFirst = codexEntries > 0 ? _sectionPage[(int)Section.Codex] : 0;
+            _codexLast = codexEntries > 0 ? list.Count : 0;
+
             _sectionPage[(int)Section.Graveyard] = list.Count + 1;
             int shown = 0;
             if (fallen != null)
             {
-                for (int i = fallen.Count - 1; i >= 0 && shown < maxFallenPages; i--, shown++)
-                    list.Add(new Spec { kind = Kind.Grave, fallen = fallen[i] });
+                // two pages for every hero: the memorial on the left, the legacy on the right
+                int maxHeroes = Mathf.Max(1, maxFallenPages / 2);
+                for (int i = fallen.Count - 1; i >= 0 && shown < maxHeroes; i--, shown++)
+                {
+                    list.Add(new Spec { kind = Kind.GraveLeft, fallen = fallen[i] });
+                    list.Add(new Spec { kind = Kind.GraveRight, fallen = fallen[i] });
+                }
             }
             if (shown == 0) list.Add(new Spec { kind = Kind.Empty });
             Pad(list);
@@ -451,9 +522,11 @@ namespace Game
             Texture2D weaponPicture = null;
 
             GameObject go = null;
-            if (prefab != null)
+            bool graveSpread = (spec.kind == Kind.GraveLeft || spec.kind == Kind.GraveRight) && spec.fallen != null;
+            if (prefab != null || graveSpread)
             {
-                go = Instantiate(prefab, _sheet);
+                // the two grave pages of a hero are built in code (no prefab); everything else is a prefab
+                go = graveSpread ? GraveSpreadView.Create(_sheet, spec.kind == Kind.GraveRight, spec.fallen) : Instantiate(prefab, _sheet);
                 go.name = "PageDraw_" + pageNumber;
 
                 // The page prefab has its own Canvas + scaler so you can edit it on its own; here it is just a panel
@@ -484,8 +557,8 @@ namespace Game
                 var ip = go.GetComponent<IndexPageView>();
                 if (ip != null)
                 {
-                    var names = new List<string> { statsName, armouryName, graveyardTitle };
-                    var pages = new List<int> { _sectionPage[(int)Section.Stats], _sectionPage[(int)Section.Armoury], _sectionPage[(int)Section.Graveyard] };
+                    var names = new List<string> { howToName, statsName, armouryName, codexName, graveyardTitle };
+                    var pages = new List<int> { _sectionPage[(int)Section.HowToPlay], _sectionPage[(int)Section.Stats], _sectionPage[(int)Section.Armoury], _sectionPage[(int)Section.Codex], _sectionPage[(int)Section.Graveyard] };
                     ip.Fill(names, pages);
                 }
                 var tp = go.GetComponent<TextPageView>();
@@ -567,6 +640,189 @@ namespace Game
                 m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             }
             return m;
+        }
+
+        // ------------------------------------------------------------------ Codex pages (drawn on demand)
+        // Every other page is drawn when the book opens and kept. The Codex has two pages for every archetype, so those are drawn only
+        // when the book gets near them: a window of pages around the open spread is kept ready, pages further away are thrown away,
+        // and the rest show a plain page (the placeholder) for the moment they flip by.
+        List<Spec> _specs;
+        int _codexFirst, _codexLast;                       // page numbers (1-based) of the first and last Codex page; 0 = no Codex
+        Material _codexPlaceholder;
+        readonly Dictionary<int, Texture2D> _codexTex = new Dictionary<int, Texture2D>();
+        readonly Dictionary<int, Material> _codexMat = new Dictionary<int, Material>();
+        bool _codexRendering, _jumping;
+        float _codexNextCheck;
+
+        bool IsCodexPage(int page)
+        {
+            return _codexLast > 0 && page >= _codexFirst && page <= _codexLast;
+        }
+
+        Material CodexPlaceholder()
+        {
+            if (_codexPlaceholder != null) return _codexPlaceholder;
+            var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            var px = new Color[16];
+            for (int i = 0; i < px.Length; i++) px[i] = pageBackground;
+            tex.SetPixels(px);
+            tex.Apply(false, true);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            _textures.Add(tex);
+            _codexPlaceholder = MakePageMaterial(tex, 0);
+            _codexPlaceholder.name = "BookPage_CodexPlaceholder";
+            return _codexPlaceholder;
+        }
+
+        // Called every frame (cheap: it only looks every fifth of a second).
+        void CodexTick()
+        {
+            if (_codexLast <= 0 || !IsOpen || _closing || _codexRendering || _jumping || book == null) return;
+            if (Time.unscaledTime < _codexNextCheck) return;
+            _codexNextCheck = Time.unscaledTime + 0.2f;
+
+            int left = book.CurrentLeftPageNumber;
+            int lo = left - codexPagesBehind, hi = left + 1 + codexPagesAhead;
+
+            var want = new List<int>();
+            for (int p = Mathf.Max(_codexFirst, lo); p <= Mathf.Min(_codexLast, hi); p++)
+                if (!_codexTex.ContainsKey(p)) want.Add(p);
+            if (want.Count > 0)
+            {
+                want.Sort((x, y) => Mathf.Abs(x - left).CompareTo(Mathf.Abs(y - left)));   // the nearest first
+                StartCoroutine(RenderCodexPages(want));
+                return;
+            }
+
+            if (IsBusy) return;   // never throw a page away while the book is turning
+            List<int> drop = null;
+            foreach (var kv in _codexTex)
+                if (kv.Key < lo - 2 || kv.Key > hi + 2) { if (drop == null) drop = new List<int>(); drop.Add(kv.Key); }
+            if (drop != null) foreach (int p in drop) ReleaseCodexPage(p);
+        }
+
+        void ReleaseCodexPage(int p)
+        {
+            if (book != null && p <= book.LastPageNumber)
+                book.SetPageData(p, new PageData { material = CodexPlaceholder() });
+            Material m; Texture2D t;
+            if (_codexMat.TryGetValue(p, out m) && m != null) Destroy(m);
+            if (_codexTex.TryGetValue(p, out t) && t != null) Destroy(t);
+            _codexMat.Remove(p);
+            _codexTex.Remove(p);
+            if (debugLogs) Debug.Log("[Book] Codex page " + p + " released (" + _codexTex.Count + " kept)");
+        }
+
+        IEnumerator JumpAfterCodexRoutine(Section section, int page)
+        {
+            _jumping = true;
+            while (_codexRendering) yield return null;
+            var need = new List<int>();
+            if (!_codexTex.ContainsKey(page)) need.Add(page);
+            if (!_codexTex.ContainsKey(page + 1)) need.Add(page + 1);
+            if (need.Count > 0) yield return RenderCodexPages(need);
+            _jumping = false;
+            JumpTo(section);
+        }
+
+        IEnumerator RenderCodexPages(List<int> pages)
+        {
+            _codexRendering = true;
+            MakeCamera();
+            foreach (int p in pages)
+            {
+                if (_closing || _specs == null) break;
+                if (_codexTex.ContainsKey(p)) continue;
+                yield return DrawCodexPage(p);
+            }
+            DisposeCamera();
+            _codexRendering = false;
+        }
+
+        IEnumerator DrawCodexPage(int pageNumber)
+        {
+            if (_specs == null || pageNumber < 1 || pageNumber > _specs.Count) yield break;
+            var spec = _specs[pageNumber - 1];
+            if (spec.archetype == null) yield break;
+            bool right = spec.kind == Kind.CodexRight;
+
+            EnsureRenderTexture(pageTextureSize);
+            Texture2D portrait = right ? null : TakePortrait(spec.archetype);
+
+            var go = CodexSpreadView.Create(_sheet, right, spec.archetype, portrait, SeenAs(spec.archetype), pageContentWidth);
+            go.name = "CodexDraw_" + pageNumber;
+            var pageRt = (RectTransform)go.transform;
+            pageRt.anchorMin = Vector2.zero;
+            pageRt.anchorMax = new Vector2(pageContentWidth, 1f);
+            pageRt.offsetMin = Vector2.zero;
+            pageRt.offsetMax = Vector2.zero;
+            pageRt.localScale = Vector3.one;
+
+            foreach (var t in go.GetComponentsInChildren<TMP_Text>(true)) t.ForceMeshUpdate();
+            for (int i = 0; i < Mathf.Max(1, settleFrames); i++) yield return null;
+            foreach (var t in go.GetComponentsInChildren<TMP_Text>(true)) t.ForceMeshUpdate();
+            Canvas.ForceUpdateCanvases();
+
+            _cam.targetTexture = _rt;
+            _cam.Render();
+
+            int size = pageTextureSize;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, true);
+            var prev = RenderTexture.active;
+            RenderTexture.active = _rt;
+            tex.ReadPixels(new Rect(0, 0, size, size), 0, 0);
+            tex.Apply(true, true);
+            RenderTexture.active = prev;
+            _cam.targetTexture = null;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            tex.anisoLevel = 4;
+
+            Destroy(go);
+            if (portrait != null) Destroy(portrait);   // it is baked into the page now
+
+            var mat = MakePageMaterial(tex, pageNumber);
+            _codexTex[pageNumber] = tex;
+            _codexMat[pageNumber] = mat;
+            if (book != null && pageNumber <= book.LastPageNumber) book.SetPageData(pageNumber, new PageData { material = mat });
+            if (debugLogs) Debug.Log("[Book] Codex page " + pageNumber + " drawn (" + _codexTex.Count + " kept)");
+        }
+
+        // The portrait of an archetype: the first of its models that has a prefab (the hero version first, else the opponent one).
+        Texture2D TakePortrait(ArchetypeDefinition a)
+        {
+            GameObject prefab = null;
+            if (codexCatalog != null && a.modelIds != null)
+                foreach (var id in a.modelIds)
+                {
+                    var model = codexCatalog.Find(id);
+                    if (model == null) continue;
+                    prefab = model.playerPrefab != null ? model.playerPrefab : model.enemyPrefab;
+                    if (prefab != null) break;
+                }
+            if (prefab == null) { Debug.LogWarning("[Book] No model found for the archetype '" + a.displayName + "' (check its Model Ids and the Codex Catalog on the book).", this); return null; }
+
+            string problem;
+            int ph = Mathf.Max(64, codexPortraitSize);
+            int pw = Mathf.Max(48, Mathf.RoundToInt(ph * CodexSpreadView.PortraitAspect));
+            var tex = FighterBust.Take(transform, prefab, weaponFlatMaterial, pw, ph, codexFrameHeight, codexPose, codexPoseTime, out problem);
+            if (tex == null) Debug.LogWarning("[Book] No portrait for '" + a.displayName + "': " + problem, this);
+            return tex;
+        }
+
+        string SeenAs(ArchetypeDefinition a)
+        {
+            if (codexCatalog == null || a.modelIds == null) return "";
+            bool hero = false, foe = false;
+            foreach (var id in a.modelIds)
+            {
+                var model = codexCatalog.Find(id);
+                if (model == null) continue;
+                if (model.playerPrefab != null) hero = true;
+                if (model.enemyPrefab != null) foe = true;
+            }
+            if (hero && foe) return "Hero  /  Opponent";
+            return hero ? "Hero" : (foe ? "Opponent" : "");
         }
 
         // ------------------------------------------------------------------ size and facing
@@ -665,13 +921,13 @@ namespace Game
 
         // ------------------------------------------------------------------ side tabs
         Transform _tabRoot;
-        readonly Transform[] _tabs = new Transform[4];        // the hinge at the spine; turning it carries the tab over to the other side
-        readonly Transform[] _tabBody = new Transform[4];     // the tab itself, out along the hinge
-        readonly Collider[] _tabColliders = new Collider[4];
-        readonly float[] _tabBaseX = new float[4];
-        readonly float[] _angle = new float[4];               // 0 = on the right edge, 180 = on the left edge
-        readonly bool[] _flip = new bool[4];
-        readonly float[] _flipT = new float[4], _flipDur = new float[4], _flipFrom = new float[4], _flipTo = new float[4];
+        readonly Transform[] _tabs = new Transform[SectionCount];        // the hinge at the spine; turning it carries the tab over to the other side
+        readonly Transform[] _tabBody = new Transform[SectionCount];     // the tab itself, out along the hinge
+        readonly Collider[] _tabColliders = new Collider[SectionCount];
+        readonly float[] _tabBaseX = new float[SectionCount];
+        readonly float[] _angle = new float[SectionCount];               // 0 = on the right edge, 180 = on the left edge
+        readonly bool[] _flip = new bool[SectionCount];
+        readonly float[] _flipT = new float[SectionCount], _flipDur = new float[SectionCount], _flipFrom = new float[SectionCount], _flipTo = new float[SectionCount];
         float _tabSlideLength;
         float _turnDur = 0.6f;
 
@@ -683,8 +939,10 @@ namespace Game
             switch (i)
             {
                 case 0: return "Index";
-                case 1: return statsName;
-                case 2: return armouryName;
+                case 1: return howToName;
+                case 2: return statsName;
+                case 3: return armouryName;
+                case 4: return codexName;
                 default: return graveyardTitle;
             }
         }
@@ -724,7 +982,7 @@ namespace Game
         {
             if (_tabRoot != null) Destroy(_tabRoot.gameObject);
             _tabRoot = null;
-            for (int i = 0; i < 4; i++) { _tabs[i] = null; _tabBody[i] = null; _tabColliders[i] = null; _flip[i] = false; }
+            for (int i = 0; i < SectionCount; i++) { _tabs[i] = null; _tabBody[i] = null; _tabColliders[i] = null; _flip[i] = false; }
         }
 
         void BuildTabs()
@@ -757,7 +1015,7 @@ namespace Game
             float halfW = b.max.x - spine;
             float rightX = halfW + len * 0.5f - len * 0.12f;   // a little of the tab is tucked in under the cover
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < SectionCount; i++)
             {
                 float offset = margin + h * 0.5f + i * (h + gap);
                 float z = tabsStartAtTop ? b.max.z - offset : b.min.z + offset;
@@ -785,7 +1043,7 @@ namespace Game
                 if (rend != null)
                 {
                     rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    var mat = StageMaterials.Make(i < tabColors.Length ? tabColors[i] : Color.grey);
+                    var mat = StageMaterials.Make(tabColors != null && tabColors.Length >= SectionCount ? tabColors[i] : DefaultTabColors()[i]);
                     if (mat != null) rend.sharedMaterial = mat;
                 }
 
@@ -834,7 +1092,7 @@ namespace Game
         {
             if (_tabRoot == null) return;
             bool forward = direction == Page.TurnDirectionEnum.TurnForward;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < SectionCount; i++)
             {
                 if (_tabs[i] == null || _sectionPage[i] <= 0) continue;
                 if (_sectionPage[i] != pageNumberBack && _sectionPage[i] != pageNumberFront) continue;
@@ -850,12 +1108,13 @@ namespace Game
         {
             int left = book.CurrentLeftPageNumber;
             int cur = 0;
-            for (int s = 0; s < 4; s++) if (_sectionPage[s] > 0 && left >= _sectionPage[s]) cur = s;
+            for (int s = 0; s < SectionCount; s++) if (_sectionPage[s] > 0 && left >= _sectionPage[s]) cur = s;
             return cur;
         }
 
         void Update()
         {
+            CodexTick();
             if (_tabRoot == null || book == null) return;
 
             bool show = IsOpen && !_closing && book.CurrentState == BookComponent.StateEnum.OpenMiddle;
@@ -865,7 +1124,7 @@ namespace Game
             // bookmarks: turn over with their page, then sit on the side their page is on
             bool turning = book.IsTurningPages;
             int cur = CurrentSection();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < SectionCount; i++)
             {
                 if (_tabs[i] == null) continue;
                 if (_flip[i])
@@ -900,7 +1159,7 @@ namespace Game
             float best = float.MaxValue;
             int hit = -1;
             foreach (var h in hits)
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < SectionCount; i++)
                     if (_tabColliders[i] != null && h.collider == _tabColliders[i] && h.distance < best) { best = h.distance; hit = i; }
             if (hit >= 0) JumpTo((Section)hit);
         }
@@ -938,6 +1197,10 @@ namespace Game
             foreach (var t in _textures) if (t != null) Destroy(t);
             _materials.Clear();
             _textures.Clear();
+            foreach (var kv in _codexMat) if (kv.Value != null) Destroy(kv.Value);
+            foreach (var kv in _codexTex) if (kv.Value != null) Destroy(kv.Value);
+            _codexMat.Clear();
+            _codexTex.Clear();
         }
 
         /// <summary>Hides the book and removes it once its last sound has finished (destroying it at once would cut the close thud off).</summary>

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Werewolf_Wolf
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Werewolf
+  classification: 1
+  modelIds:
+  - Werewolf_Wolf
+  description: Afflicted or blessed by an unusual transformation of the body, Werewolves
+    combine mortal intelligence with the instincts and physical might of beasts.
+    The origins of their condition remain disputed, with theories ranging from ancient
+    curses to forbidden bodily cultivation. Those capable of mastering their instincts
+    become exceptionally dangerous warriors.
+  modifiers:
+  - kind: 1
+    points: 1
+  - kind: 3
+    points: 2
+  - kind: 5
+    points: -1
+  abilities: []

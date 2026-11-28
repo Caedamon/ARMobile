@@ -106,12 +106,58 @@ MonoBehaviour:
   sideBySide: 1
   playerOnWest: 1
   groundOffset: 0
+  groupSpacing: 0.28
+  weaponsPerFighter: 1
   realtimeCombat: 1
   unarmedMoveset: {fileID: 11400000, guid: b78d02a3a156e12428ea17e6cc65fa75, type: 2}
   combatTuning: {fileID: 11400000, guid: 6cd7e3d306d60f4419521ddf1e2298f4, type: 2}
   combatSounds: {fileID: 11400000, guid: b492e10ce5f91d24cbf4838c91613697, type: 2}
   animationPack: {fileID: 11400000, guid: 8360827fba6dcb94da6a2aa07739083f, type: 2}
   brainDebugLogs: 1
+  smartFromTier: 2
+  normalSmartChance: 0.15
+  bossUsesBossAi: 1
+  heroAi: 0
+  allyAi: 0
+  aiTuning:
+    circleSpeedMul: 0.7
+    ringExtraHeights: 0.1
+    circleFlipMin: 1.2
+    circleFlipMax: 2.6
+    circleUntil: 0.25
+    strikeSlackHeights: 0.1
+    punishVulnerable: 1
+    hitAndRunChance: 0.35
+    hitAndRunGap: 2.2
+    defenceMul: 1.3
+    defendOnlyIfReachable: 1
+    counterAfterDefence: 1
+    cautiousBelow: 0.35
+    cautiousCooldownMul: 1.35
+    killBelow: 0.3
+    killCooldownMul: 0.7
+    weakBias: 0.8
+    keepTargetBias: 0.75
+    outOfReachWeight: 0.2
+    seekerContestedPenalty: 0.15
+    seekerRaceMargin: 0.9
+    phase1At: 0.66
+    phase2At: 0.33
+    roarMaxSeconds: 1.2
+    phase1CooldownMul: 0.8
+    phase2CooldownMul: 0.6
+    phase1SpeedMul: 1.1
+    phase2SpeedMul: 1.25
+    phase1DamageMul: 1
+    phase2DamageMul: 1.15
+    phase1Poise: 0.25
+    phase2Poise: 0.5
+    phase0ComboChance: 0.15
+    phase1ComboChance: 0.3
+    phase2ComboChance: 0.45
+    comboCooldown: 0.08
+  arrivalPortals: 1
+  arrivalPortalColor: {r: 0.25, g: 0.85, b: 1, a: 1}
   debugLogs: 1
 --- !u!1 &2942112487426208176
 GameObject:

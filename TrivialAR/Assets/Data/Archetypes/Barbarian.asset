@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Barbarian
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Barbarian
+  classification: 0
+  modelIds:
+  - Barbarian
+  description: Born among peoples who value strength above scholarly pursuits, Barbarians
+    cultivate their bodies through hardship, battle and relentless physical trials.
+    Though often dismissed as uncivilised by Imperial scholars, their instinctive
+    command of Aura makes them formidable warriors. Where others rely upon refined
+    techniques, the Barbarian relies upon overwhelming might.
+  modifiers:
+  - kind: 1
+    points: 1
+  - kind: 0
+    points: 1
+  - kind: 2
+    points: -1
+  abilities: []

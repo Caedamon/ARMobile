@@ -11,7 +11,7 @@ namespace Fighters
     {
         public FighterData Data { get; private set; }
 
-        public void Apply(FighterData d, bool debugLogs = false)
+        public void Apply(FighterData d, bool debugLogs = false, ArchetypeDefinition archetype = null)
         {
             Data = d;
             gameObject.name = d.displayName + " (" + d.modelId + ")";
@@ -40,6 +40,14 @@ namespace Fighters
             if (hp != null)
             {
                 hp.maxHP = StatRules.MaxHP(d);
+                hp.ResetHP();
+            }
+
+            // Archetype (class) modifiers: only for models whose archetype has any. Same path for the hero, allies and opponents.
+            var fx = ArchetypeEffects.Attach(gameObject, archetype);
+            if (fx != null && hp != null && !Mathf.Approximately(fx.HealthMul, 1f))
+            {
+                hp.maxHP = hp.maxHP * fx.HealthMul;
                 hp.ResetHP();
             }
 

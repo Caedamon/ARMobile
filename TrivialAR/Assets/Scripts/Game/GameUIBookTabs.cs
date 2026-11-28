@@ -16,26 +16,26 @@ namespace Game
         public event Action<int> BookTabClicked;
 
         [Header("Book tabs (made by Set Up Index, Stats and Armoury)")]
-        [SerializeField] Button[] _bookTabs = new Button[4];
+        [SerializeField] Button[] _bookTabs = new Button[6];
 
         [Tooltip("Names on the tabs, in book order: Index, Stats, Armoury, then the graveyard.")]
-        [SerializeField] string[] _bookTabNames = { "Index", "Stats", "Armoury", "Memento Mori" };
+        [SerializeField] string[] _bookTabNames = { "Index", "Arena Rules", "Stats", "Armoury", "Codex", "Memento Mori" };
 
         public bool HasBookTabs()
         {
             if (_bookPanel == null) return true;   // no Book screen, so nothing to add tabs to
-            if (_bookTabs == null || _bookTabs.Length != 4) return false;
-            for (int i = 0; i < 4; i++) if (_bookTabs[i] == null) return false;
+            if (_bookTabs == null || _bookTabs.Length != 6) return false;
+            for (int i = 0; i < 6; i++) if (_bookTabs[i] == null) return false;
             return true;
         }
 
         public void AddBookTabs()
         {
             if (_bookPanel == null) return;
-            if (_bookTabs == null || _bookTabs.Length != 4) _bookTabs = new Button[4];
+            if (_bookTabs == null || _bookTabs.Length != 6) _bookTabs = new Button[6];
 
-            float[] x = { 0.14f, 0.38f, 0.62f, 0.86f };
-            for (int i = 0; i < 4; i++)
+            float[] x = { 0.09f, 0.25f, 0.41f, 0.57f, 0.73f, 0.89f };
+            for (int i = 0; i < 6; i++)
             {
                 if (_bookTabs[i] != null) continue;
                 string name = "BookTab" + i;
@@ -45,15 +45,16 @@ namespace Game
                 if (_bookTabs[i] != null) continue;
 
                 TMP_Text l;
-                _bookTabs[i] = NewButton(_bookPanel.transform, name, TabName(i), x[i], 0.225f, new Vector2(236f, 100f), Grey, out l);
+                _bookTabs[i] = NewButton(_bookPanel.transform, name, TabName(i), x[i], 0.225f, new Vector2(164f, 100f), Grey, out l);
                 l.fontSize = 32f;
             }
         }
 
         string TabName(int i)
         {
-            string[] fallback = { "Index", "Stats", "Armoury", "Memento Mori" };
-            return _bookTabNames != null && i < _bookTabNames.Length && !string.IsNullOrEmpty(_bookTabNames[i]) ? _bookTabNames[i] : fallback[i];
+            string[] fallback = { "Index", "Arena Rules", "Stats", "Armoury", "Codex", "Memento Mori" };
+            bool saved = _bookTabNames != null && _bookTabNames.Length == fallback.Length;   // names saved before the Arena Rules tab existed are the wrong length: ignore them
+            return saved && !string.IsNullOrEmpty(_bookTabNames[i]) ? _bookTabNames[i] : fallback[i];
         }
 
         void WireBookTabs()

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a05155c6dfc9438082102e82b62d9, type: 3}
+  m_Name: Paladin_with_Helmet
+  m_EditorClassIdentifier: Assembly-CSharp::Fighters.ArchetypeDefinition
+  displayName: Paladin
+  classification: 0
+  modelIds:
+  - Paladin_with_Helmet
+  description: Warriors blessed with a great sense of duty and honour, Paladins dedicate
+    their lives to protecting the innocent and preserving the natural order. Through
+    disciplined cultivation and unwavering conviction, they channel their inner Aura
+    into martial strength. They harbour a natural abhorrence towards the undead and
+    those who defile the cycle of life and death.
+  modifiers:
+  - kind: 0
+    points: 1
+  - kind: 5
+    points: 1
+  - kind: 3
+    points: -1
+  abilities: []
